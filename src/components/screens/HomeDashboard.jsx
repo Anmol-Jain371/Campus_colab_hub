@@ -43,7 +43,7 @@ const HomeDashboard = ({ onOpenCreateProject, onOpenCollabRequest }) => {
           <p style={{ color: 'var(--text-secondary)', marginTop: '4px' }}>Here is what's happening in your campus community today.</p>
         </div>
         <div style={{ display: 'flex', gap: '12px' }}>
-          <button className="btn btn-outline" onClick={() => navigateTo('notifications')} style={{ borderColor: 'rgba(255,255,255,0.1)', color: 'white' }}>
+          <button className="btn btn-outline" onClick={() => navigateTo('notifications')}>
             <Bell size={18} />
             {unreadNotis && (
               <span id="dash-noti-indicator" style={{ display: 'inline-block', width: '8px', height: '8px', borderRadius: '50%', backgroundColor: 'var(--error)', marginLeft: '4px' }}></span>
@@ -53,7 +53,7 @@ const HomeDashboard = ({ onOpenCreateProject, onOpenCollabRequest }) => {
       </div>
 
       {/* Welcome Banner */}
-      <div className="dashboard-banner" style={{ border: '1px solid rgba(255,255,255,0.08)' }}>
+      <div className="dashboard-banner">
         <div className="banner-content">
           <h2 className="banner-title">Build Something Extraordinary</h2>
           <p className="banner-subtitle">Interdisciplinary collaboration breeds innovation. Join forces with designers, coders, and marketers to bring your startup, research, or hackathon ideas to life.</p>
@@ -61,7 +61,6 @@ const HomeDashboard = ({ onOpenCreateProject, onOpenCollabRequest }) => {
             <button className="btn btn-primary" onClick={onOpenCreateProject}>Create Project Listing</button>
             <button 
               className="btn btn-secondary" 
-              style={{ background: 'rgba(255,255,255,0.08)', borderColor: 'rgba(255,255,255,0.1)', color: 'white' }} 
               onClick={() => navigateTo('discover')}
             >
               Find Collaborators
@@ -72,16 +71,16 @@ const HomeDashboard = ({ onOpenCreateProject, onOpenCollabRequest }) => {
 
       {/* Quick Action Buttons */}
       <div className="quick-actions-bar">
-        <div className="quick-action-btn" onClick={onOpenCreateProject} style={{ background: '#0f172a', border: '1px solid rgba(255,255,255,0.08)' }}>
-          <PlusCircle color="var(--accent)" />
+        <div className="quick-action-btn btn-create" onClick={onOpenCreateProject}>
+          <PlusCircle />
           <span>List a Project</span>
         </div>
-        <div className="quick-action-btn" onClick={() => navigateTo('discover')} style={{ background: '#0f172a', border: '1px solid rgba(255,255,255,0.08)' }}>
-          <Search color="var(--accent)" />
+        <div className="quick-action-btn btn-find" onClick={() => navigateTo('discover')}>
+          <Search />
           <span>Find Teammates</span>
         </div>
-        <div className="quick-action-btn" onClick={() => navigateTo('events')} style={{ background: '#0f172a', border: '1px solid rgba(255,255,255,0.08)' }}>
-          <Calendar color="var(--accent)" />
+        <div className="quick-action-btn btn-event" onClick={() => navigateTo('events')}>
+          <Calendar />
           <span>Browse Events</span>
         </div>
       </div>
