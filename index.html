@@ -1,0 +1,906 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Campus Collaboration Hub – Cross-Department Student Collaboration Platform</title>
+  <meta name="description" content="Connect and collaborate with skilled students across engineering, design, and business departments for university hackathons, startups, research, and competitions.">
+  <link rel="stylesheet" href="styles.css">
+  <!-- Lucide Icons CDN -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body>
+
+  <!-- ==========================================
+       SCREEN 1: SPLASH SCREEN (LANDING)
+       ========================================== -->
+  <div id="screen-splash" class="screen splash-bg active">
+    <div class="splash-content">
+      <div class="splash-logo">C</div>
+      <h1 class="splash-title">Campus Collaboration Hub</h1>
+      <p class="splash-tagline">Connect Beyond Your Department. Find the perfect teammates for projects, hackathons, and research.</p>
+      <div class="splash-actions">
+        <button id="btn-splash-get-started" class="btn btn-primary" onclick="app.navigateTo('signup')">Get Started</button>
+        <button id="btn-splash-login" class="btn btn-secondary" onclick="app.loginDemoUser()">Login as Demo Student</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==========================================
+       SCREEN 2: SIGN UP / PROFILE SETUP
+       ========================================== -->
+  <div id="screen-signup" class="screen signup-wrapper">
+    <div class="signup-card">
+      <div class="signup-header">
+        <h2 class="signup-title">Create Student Profile</h2>
+        <p class="signup-desc">Verify your credentials and set up your student portfolio</p>
+      </div>
+
+      <!-- Step 1: Verification -->
+      <div id="signup-step-1" class="signup-step active">
+        <form id="form-signup-step1" onsubmit="event.preventDefault(); app.nextSignupStep(2);">
+          <div class="form-group">
+            <label for="signup-email" class="form-label">University Email Address</label>
+            <input type="email" id="signup-email" class="form-control" placeholder="username@university.edu" required>
+          </div>
+          <div class="form-group" id="otp-group" style="display: none;">
+            <label for="signup-otp" class="form-label">One-Time Passcode (OTP)</label>
+            <input type="text" id="signup-otp" class="form-control" placeholder="Enter 6-digit OTP code">
+            <span style="font-size: 0.8rem; color: var(--accent); margin-top: 4px; display: inline-block;">Mock OTP: 123456</span>
+          </div>
+          <button type="button" id="btn-send-otp" class="btn btn-primary" style="width:100%; margin-bottom:12px;" onclick="app.sendMockOTP()">Send Verification Code</button>
+          <button type="submit" id="btn-verify-otp" class="btn btn-primary" style="width:100%; display:none;">Verify & Continue</button>
+        </form>
+      </div>
+
+      <!-- Step 2: Student Attributes & Skills -->
+      <div id="signup-step-2" class="signup-step">
+        <form id="form-signup-step2" onsubmit="event.preventDefault(); app.completeSignup();">
+          <!-- Profile Pic Uploader -->
+          <div class="avatar-uploader">
+            <div class="avatar-preview-container">
+              <img id="signup-avatar-preview" src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=150" alt="Profile Preview" class="avatar-preview">
+              <label for="signup-avatar-file" class="avatar-upload-btn">
+                <i data-lucide="camera" style="width: 16px; height: 16px;"></i>
+              </label>
+              <input type="file" id="signup-avatar-file" style="display: none;" accept="image/*" onchange="app.handleAvatarUpload(event)">
+            </div>
+            <span style="font-size: 0.85rem; color: var(--text-secondary);">Upload Profile Picture</span>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label for="signup-dept" class="form-label">Department / Branch</label>
+              <select id="signup-dept" class="form-control" required>
+                <option value="">Select Branch</option>
+                <option value="Computer Science">Computer Science (CSE)</option>
+                <option value="Electrical Engineering">Electrical Eng (ECE)</option>
+                <option value="Mechanical Engineering">Mechanical Eng (ME)</option>
+                <option value="Design & Fine Arts">Design & Fine Arts (UI/UX)</option>
+                <option value="Business School">Business School (MBA)</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="signup-year" class="form-label">Year of Study</label>
+              <select id="signup-year" class="form-control" required>
+                <option value="">Select Year</option>
+                <option value="1st Year">1st Year (UG)</option>
+                <option value="2nd Year">2nd Year (UG)</option>
+                <option value="3rd Year">3rd Year (UG)</option>
+                <option value="4th Year">4th Year (UG)</option>
+                <option value="Postgraduate">Postgraduate</option>
+                <option value="Research Scholar">Research Scholar</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="signup-name" class="form-label">Full Name</label>
+            <input type="text" id="signup-name" class="form-control" placeholder="Anjali Sharma" required>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Select Core Skills (Select at least 3)</label>
+            <div id="skills-selector" class="chips-container">
+              <!-- Rendered Dynamically in JS -->
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="signup-bio" class="form-label">Short Bio</label>
+            <textarea id="signup-bio" class="form-control" rows="3" placeholder="Explain your design/code interests..."></textarea>
+          </div>
+
+          <button type="submit" class="btn btn-primary" style="width: 100%;">Create Profile & Enter Hub</button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- ==========================================
+       MAIN APP CONTAINER (SIDEBAR + CONTENT)
+       ========================================== -->
+  <div id="app-workspace" class="app-container" style="display: none;">
+    
+    <!-- Sidebar Navigation (Desktop) -->
+    <aside class="sidebar">
+      <div class="brand">
+        <div class="brand-logo">C</div>
+        <span class="brand-name">Campus Collaboration</span>
+      </div>
+
+      <nav class="nav-menu">
+        <a class="nav-link active" onclick="app.navigateTo('home')">
+          <i data-lucide="home"></i>
+          <span>Dashboard</span>
+        </a>
+        <a class="nav-link" onclick="app.navigateTo('discover')">
+          <i data-lucide="users"></i>
+          <span>Discover Students</span>
+        </a>
+        <a class="nav-link" onclick="app.navigateTo('projects')">
+          <i data-lucide="folder-git"></i>
+          <span>Project Board</span>
+        </a>
+        <a class="nav-link" onclick="app.navigateTo('events')">
+          <i data-lucide="calendar"></i>
+          <span>Events</span>
+        </a>
+        <a class="nav-link" onclick="app.navigateTo('messages')">
+          <i data-lucide="message-square"></i>
+          <span>Messages</span>
+          <span class="nav-badge" id="sidebar-msg-badge" style="display: none;">0</span>
+        </a>
+        <a class="nav-link" onclick="app.navigateTo('notifications')">
+          <i data-lucide="bell"></i>
+          <span>Notifications</span>
+          <span class="nav-badge" id="sidebar-noti-badge" style="display: none;">0</span>
+        </a>
+      </nav>
+
+      <!-- Sidebar User Panel -->
+      <div class="sidebar-user" onclick="app.navigateTo('user-dashboard')">
+        <div class="user-avatar-container">
+          <img id="sidebar-user-avatar" src="" alt="My Profile Avatar" class="avatar">
+          <div class="status-indicator online"></div>
+        </div>
+        <div class="user-info">
+          <span class="name" id="sidebar-user-name">User Name</span>
+          <span class="subtitle" id="sidebar-user-dept">Department</span>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Bottom Navigation Bar (Mobile) -->
+    <nav class="bottom-nav">
+      <a class="bottom-nav-link active" onclick="app.navigateTo('home')">
+        <i data-lucide="home"></i>
+        <span>Home</span>
+      </a>
+      <a class="bottom-nav-link" onclick="app.navigateTo('discover')">
+        <i data-lucide="users"></i>
+        <span>Discover</span>
+      </a>
+      <a class="bottom-nav-link" onclick="app.navigateTo('projects')">
+        <i data-lucide="folder-git"></i>
+        <span>Projects</span>
+      </a>
+      <a class="bottom-nav-link" onclick="app.navigateTo('messages')">
+        <i data-lucide="message-square"></i>
+        <span>Chat</span>
+      </a>
+      <a class="bottom-nav-link" onclick="app.navigateTo('notifications')">
+        <i data-lucide="bell"></i>
+        <span>Notis</span>
+      </a>
+    </nav>
+
+    <!-- Main Dynamic Content Wrapper -->
+    <main class="main-wrapper">
+
+      <!-- ==========================================
+           SCREEN 3: HOME DASHBOARD
+           ========================================== -->
+      <section id="screen-home" class="screen">
+        <div class="dashboard-header">
+          <div>
+            <h1 class="page-title">Welcome back, <span id="dash-user-firstname">Student</span>!</h1>
+            <p style="color: var(--text-secondary); margin-top: 4px;">Here is what's happening in your campus community today.</p>
+          </div>
+          <div style="display: flex; gap: 12px;">
+            <button class="btn btn-outline" onclick="app.navigateTo('notifications')">
+              <i data-lucide="bell" style="width: 18px; height: 18px;"></i>
+              <span id="dash-noti-indicator" style="display:none; width: 8px; height: 8px; border-radius: 50%; background-color: var(--error); margin-left: 4px;"></span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Welcome Banner Section -->
+        <div class="dashboard-banner">
+          <div class="banner-content">
+            <h2 class="banner-title">Build Something Extraordinary</h2>
+            <p class="banner-subtitle">Interdisciplinary collaboration breeds innovation. Join forces with designers, coders, and marketers to bring your startup, research, or hackathon ideas to life.</p>
+            <div class="banner-actions">
+              <button class="btn btn-primary" onclick="app.openCreateProjectModal()">Create Project Listing</button>
+              <button class="btn btn-secondary" style="background: rgba(255,255,255,0.2); border-color: rgba(255,255,255,0.3); color: white;" onclick="app.navigateTo('discover')">Find Collaborators</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Quick Action Buttons -->
+        <div class="quick-actions-bar">
+          <div class="quick-action-btn btn-create" onclick="app.openCreateProjectModal()">
+            <i data-lucide="plus-circle"></i>
+            <span>List a Project</span>
+          </div>
+          <div class="quick-action-btn btn-find" onclick="app.navigateTo('discover')">
+            <i data-lucide="search"></i>
+            <span>Find Teammates</span>
+          </div>
+          <div class="quick-action-btn btn-event" onclick="app.navigateTo('events')">
+            <i data-lucide="calendar"></i>
+            <span>Browse Events</span>
+          </div>
+        </div>
+
+        <!-- Main Dashboard Content Grid -->
+        <div class="grid-sidebar">
+          
+          <!-- Left Column (Primary Feeds) -->
+          <div style="display: flex; flex-direction: column; gap: 32px;">
+            
+            <!-- Trending Projects -->
+            <div>
+              <div class="dashboard-sections-title">
+                <h2>Trending Project Opportunities</h2>
+                <a onclick="app.navigateTo('projects')">View all projects &rarr;</a>
+              </div>
+              <div class="grid-2" id="dashboard-trending-projects">
+                <!-- Loaded dynamically -->
+              </div>
+            </div>
+
+            <!-- Recommended Collaborators -->
+            <div>
+              <div class="dashboard-sections-title">
+                <h2>AI Recommended Collaborators</h2>
+                <a onclick="app.navigateTo('discover')">Browse students &rarr;</a>
+              </div>
+              <div class="grid-2" id="dashboard-recommended-students">
+                <!-- Loaded dynamically -->
+              </div>
+            </div>
+
+          </div>
+
+          <!-- Right Column (Announcements, Hackathons) -->
+          <div style="display: flex; flex-direction: column; gap: 32px;">
+            
+            <!-- Faculty Announcements -->
+            <div class="card">
+              <h3 style="font-size: 1.1rem; margin-bottom: 16px; display: flex; align-items: center; gap: 8px;">
+                <i data-lucide="megaphone" style="color: var(--accent); width: 20px; height: 20px;"></i>
+                Faculty Announcements
+              </h3>
+              <div style="display: flex; flex-direction: column; gap: 14px;" id="dashboard-faculty-announcements">
+                <!-- Mock announcements -->
+                <div style="border-bottom: 1px solid var(--border); padding-bottom: 12px;">
+                  <span class="badge badge-teal" style="margin-bottom: 6px;">Research Grant</span>
+                  <p style="font-size: 0.9rem; font-weight: 600; line-height: 1.3;">Inter-Departmental AI Research Proposal Open</p>
+                  <p style="font-size: 0.75rem; color: var(--text-muted); margin-top: 4px;">Dr. Ramamurthy, Dean of Research • 2 hours ago</p>
+                </div>
+                <div>
+                  <span class="badge badge-blue" style="margin-bottom: 6px;">Incubator</span>
+                  <p style="font-size: 0.9rem; font-weight: 600; line-height: 1.3;">Pre-Seed Seed Funding Pitch Deck Submissions</p>
+                  <p style="font-size: 0.75rem; color: var(--text-muted); margin-top: 4px;">Prof. Anita Desai, Campus E-Cell • 1 day ago</p>
+                </div>
+              </div>
+            </div>
+
+            <!-- Upcoming Hackathons/Events -->
+            <div class="card">
+              <h3 style="font-size: 1.1rem; margin-bottom: 16px; display: flex; align-items: center; gap: 8px;">
+                <i data-lucide="trophy" style="color: var(--warning); width: 20px; height: 20px;"></i>
+                Upcoming Competitions
+              </h3>
+              <div style="display: flex; flex-direction: column; gap: 14px;" id="dashboard-upcoming-hackathons">
+                <!-- Mock Hackathons -->
+              </div>
+            </div>
+
+          </div>
+
+        </div>
+      </section>
+
+      <!-- ==========================================
+           SCREEN 4: STUDENT PROFILE DETAILS
+           ========================================== -->
+      <section id="screen-student-profile" class="screen">
+        <button class="btn btn-secondary btn-sm" style="margin-bottom: 20px;" onclick="app.navigateBack()">
+          <i data-lucide="arrow-left" style="width: 16px; height: 16px;"></i> Back to List
+        </button>
+
+        <div class="profile-hero" id="student-profile-hero">
+          <!-- Loaded dynamically -->
+        </div>
+
+        <div class="grid-sidebar">
+          <!-- Left Column: Biography, Portfolio, Achievements -->
+          <div style="display: flex; flex-direction: column; gap: 24px;">
+            <!-- Bio & Details -->
+            <div class="card">
+              <h3 style="font-size: 1.1rem; margin-bottom: 12px;">About Me</h3>
+              <p id="student-profile-bio" style="color: var(--text-secondary); font-size: 0.95rem;">Student bio description.</p>
+            </div>
+
+            <!-- Portfolio Gallery -->
+            <div class="card">
+              <h3 style="font-size: 1.1rem; margin-bottom: 12px;">Portfolio & Assets</h3>
+              <div class="portfolio-gallery" id="student-profile-portfolio">
+                <!-- Loaded dynamically -->
+              </div>
+            </div>
+
+            <!-- Past Collaborations / Projects -->
+            <div class="card">
+              <h3 style="font-size: 1.1rem; margin-bottom: 16px;">Past Projects & Case Studies</h3>
+              <div style="display: flex; flex-direction: column; gap: 16px;" id="student-profile-past-projects">
+                <!-- Dynamic Content -->
+              </div>
+            </div>
+          </div>
+
+          <!-- Right Column: Skills list, Availability, Endorsements -->
+          <div style="display: flex; flex-direction: column; gap: 24px;">
+            <!-- Core Skills -->
+            <div class="card">
+              <h3 style="font-size: 1.1rem; margin-bottom: 12px;">Skills & Competencies</h3>
+              <div class="chips-container" id="student-profile-skills">
+                <!-- Chips -->
+              </div>
+            </div>
+
+            <!-- Availability & Stats -->
+            <div class="card">
+              <h3 style="font-size: 1.1rem; margin-bottom: 16px;">Collaboration Details</h3>
+              <div style="display: flex; flex-direction: column; gap: 12px;">
+                <div style="display: flex; justify-content: space-between; font-size: 0.9rem;">
+                  <span style="color: var(--text-secondary); font-weight: 500;">Status Availability:</span>
+                  <span id="student-profile-avail" class="badge badge-success">Open for projects</span>
+                </div>
+                <div style="display: flex; justify-content: space-between; font-size: 0.9rem;">
+                  <span style="color: var(--text-secondary); font-weight: 500;">Project Interest:</span>
+                  <span id="student-profile-interest" style="font-weight: 600;">Startup, Hackathons</span>
+                </div>
+                <div style="display: flex; justify-content: space-between; font-size: 0.9rem;">
+                  <span style="color: var(--text-secondary); font-weight: 500;">Endorsements:</span>
+                  <span style="font-weight: 600;" id="student-profile-endorse">12 Peer Endorsements</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ==========================================
+           SCREEN 5: DISCOVER STUDENTS
+           ========================================== -->
+      <section id="screen-discover" class="screen">
+        <div class="dashboard-header">
+          <div>
+            <h1 class="page-title">Discover Skillful Teammates</h1>
+            <p style="color: var(--text-secondary); margin-top: 4px;">Filter and match with students from different departments based on technical and creative skills.</p>
+          </div>
+        </div>
+
+        <!-- Search and Filters Panel -->
+        <div class="search-filter-panel">
+          <div class="search-input-wrapper">
+            <i data-lucide="search"></i>
+            <input type="text" id="discover-search-input" class="form-control" placeholder="Search by name, skills, or projects..." oninput="app.filterStudents()">
+          </div>
+          <div class="filter-selects">
+            <select id="discover-filter-dept" class="filter-select" onchange="app.filterStudents()">
+              <option value="All">All Departments</option>
+              <option value="Computer Science">Computer Science</option>
+              <option value="Electrical Engineering">Electrical Eng</option>
+              <option value="Mechanical Engineering">Mechanical Eng</option>
+              <option value="Design & Fine Arts">Design & UI/UX</option>
+              <option value="Business School">Business School</option>
+            </select>
+            <select id="discover-filter-year" class="filter-select" onchange="app.filterStudents()">
+              <option value="All">All Years</option>
+              <option value="1st Year">1st Year</option>
+              <option value="2nd Year">2nd Year</option>
+              <option value="3rd Year">3rd Year</option>
+              <option value="4th Year">4th Year</option>
+              <option value="Postgraduate">Postgrad/PhD</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Discover Student Grid -->
+        <div class="student-card-grid" id="discover-student-list">
+          <!-- Loaded dynamically via JS -->
+        </div>
+      </section>
+
+      <!-- ==========================================
+           SCREEN 6: PROJECT BOARD
+           ========================================== -->
+      <section id="screen-projects" class="screen">
+        <div class="dashboard-header">
+          <div>
+            <h1 class="page-title">Project Collaboration Board</h1>
+            <p style="color: var(--text-secondary); margin-top: 4px;">Browse active projects looking for multi-department talent, or post your own proposal.</p>
+          </div>
+          <button class="btn btn-primary" onclick="app.openCreateProjectModal()">
+            <i data-lucide="plus" style="width: 18px; height: 18px;"></i> Create Project Listing
+          </button>
+        </div>
+
+        <!-- Filters & Search for Projects -->
+        <div class="search-filter-panel">
+          <div class="search-input-wrapper">
+            <i data-lucide="search"></i>
+            <input type="text" id="projects-search-input" class="form-control" placeholder="Search project titles, descriptions, skills..." oninput="app.filterProjects()">
+          </div>
+          <div class="filter-selects">
+            <select id="projects-filter-skill" class="filter-select" onchange="app.filterProjects()">
+              <option value="All">All Skills</option>
+              <option value="Python">Python</option>
+              <option value="React">React</option>
+              <option value="Figma">Figma</option>
+              <option value="UI/UX">UI/UX</option>
+              <option value="Machine Learning">Machine Learning</option>
+              <option value="Marketing">Marketing</option>
+              <option value="Finance">Finance</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Projects Grid -->
+        <div class="grid-3" id="projects-list-grid">
+          <!-- Loaded dynamically -->
+        </div>
+      </section>
+
+      <!-- ==========================================
+           SCREEN 7: PROJECT DETAILS
+           ========================================== -->
+      <section id="screen-project-details" class="screen">
+        <button class="btn btn-secondary btn-sm" style="margin-bottom: 20px;" onclick="app.navigateBack()">
+          <i data-lucide="arrow-left" style="width: 16px; height: 16px;"></i> Back to Projects
+        </button>
+
+        <div class="project-details-grid">
+          <!-- Left Main Column -->
+          <div style="display: flex; flex-direction: column; gap: 24px;">
+            <div class="card" style="position: relative;">
+              <span id="proj-details-status" class="badge badge-teal" style="position: absolute; top: 24px; right: 24px;">Active Recruitment</span>
+              <h1 id="proj-details-title" style="font-size: 1.8rem; margin-bottom: 12px; max-width: 80%;">Project Title</h1>
+              
+              <div style="display: flex; gap: 16px; font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 24px; flex-wrap: wrap;">
+                <span style="display: flex; align-items: center; gap: 6px;">
+                  <i data-lucide="user" style="width: 16px; height: 16px;"></i> Proposed by: <strong id="proj-details-owner">Owner Name</strong>
+                </span>
+                <span style="display: flex; align-items: center; gap: 6px;">
+                  <i data-lucide="calendar" style="width: 16px; height: 16px;"></i> Deadline: <strong id="proj-details-deadline">June 2026</strong>
+                </span>
+                <span style="display: flex; align-items: center; gap: 6px;">
+                  <i data-lucide="users-2" style="width: 16px; height: 16px;"></i> Team Size: <strong id="proj-details-size">3/5 Students</strong>
+                </span>
+              </div>
+
+              <h3 style="font-size: 1.1rem; margin-bottom: 8px;">Project Overview</h3>
+              <p id="proj-details-desc" style="color: var(--text-secondary); line-height: 1.6; margin-bottom: 24px;">Detailed explanation goes here.</p>
+              
+              <h3 style="font-size: 1.1rem; margin-bottom: 12px;">Desired Skill Sets Needed</h3>
+              <div class="chips-container" id="proj-details-skills-needed" style="margin-bottom: 24px;">
+                <!-- Tags -->
+              </div>
+              
+              <div style="display: flex; gap: 12px;">
+                <button id="btn-request-to-join" class="btn btn-primary">Request to Join Team</button>
+                <button class="btn btn-outline" onclick="app.shareProjectDetails()">Share Listing</button>
+              </div>
+            </div>
+
+            <!-- Project Discussions Section -->
+            <div class="card">
+              <h3 style="font-size: 1.1rem; margin-bottom: 16px;">Project Discussion Board</h3>
+              <div class="discussion-board">
+                <div class="discussion-input-wrapper">
+                  <input type="text" id="project-comment-input" class="form-control" placeholder="Ask a question or offer input...">
+                  <button class="btn btn-primary" onclick="app.postProjectComment()">Comment</button>
+                </div>
+                <div class="discussion-threads" id="project-discussion-threads">
+                  <!-- Comments loaded dynamically -->
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Right Sidebar Column -->
+          <div style="display: flex; flex-direction: column; gap: 24px;">
+            <!-- Current Team Members -->
+            <div class="card">
+              <h3 style="font-size: 1.1rem; margin-bottom: 12px;">Current Team Members</h3>
+              <div class="team-members-list" id="proj-details-team-list">
+                <!-- Team List -->
+              </div>
+            </div>
+
+            <!-- Faculty Mentor & Incubation -->
+            <div class="card">
+              <h3 style="font-size: 1.1rem; margin-bottom: 16px;">Mentorship & Support</h3>
+              <div style="display: flex; align-items: center; gap: 12px;">
+                <div style="width: 40px; height: 40px; border-radius: 50%; background-color: var(--primary-light); color: var(--primary); display: flex; align-items: center; justify-content: center;">
+                  <i data-lucide="graduation-cap"></i>
+                </div>
+                <div>
+                  <h4 id="proj-details-mentor" style="font-size: 0.95rem;">Dr. Amit Verma</h4>
+                  <p style="font-size: 0.75rem; color: var(--text-muted);">Faculty Mentor, CS Dept</p>
+                </div>
+              </div>
+              <div style="margin-top: 16px; padding: 12px; background-color: var(--bg-secondary); border-radius: var(--radius-sm); border: 1px solid var(--border);">
+                <p style="font-size: 0.8rem; color: var(--text-secondary); font-weight: 500;">Approved for incubation at E-Cell Hub. Seed grant pending teammate finalization.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ==========================================
+           SCREEN 9: MESSAGES (SPLIT CHAT UI)
+           ========================================== -->
+      <section id="screen-messages" class="screen">
+        <div class="dashboard-header" style="margin-bottom: 16px;">
+          <div>
+            <h1 class="page-title">Collaborator Workspace Chats</h1>
+            <p style="color: var(--text-secondary); margin-top: 4px;">Communicate in real time with project channels and active student connections.</p>
+          </div>
+        </div>
+
+        <div class="chat-container" id="chat-workspace-container">
+          <!-- Chat Sidebar (User List) -->
+          <div class="chat-sidebar">
+            <div class="chat-sidebar-header">
+              <input type="text" class="form-control" style="padding: 8px 12px; font-size: 0.85rem;" placeholder="Search conversations...">
+            </div>
+            
+            <div class="chat-channels-lbl">Project Channels</div>
+            <div class="chat-list" id="chat-list-channels">
+              <!-- Loaded Dynamically -->
+            </div>
+
+            <div class="chat-channels-lbl" style="border-top: 1px solid var(--border); padding-top: 16px;">Direct Connections</div>
+            <div class="chat-list" id="chat-list-directs">
+              <!-- Loaded Dynamically -->
+            </div>
+          </div>
+
+          <!-- Chat Window -->
+          <div class="chat-main">
+            <!-- Header -->
+            <div class="chat-header">
+              <div class="user-avatar-container">
+                <img id="chat-window-avatar" src="" alt="Active Chat Avatar" class="avatar">
+                <div class="status-indicator online" id="chat-window-status"></div>
+              </div>
+              <div>
+                <h3 id="chat-window-name" style="font-size: 1.05rem;">Chat Name</h3>
+                <p id="chat-window-subtitle" style="font-size: 0.75rem; color: var(--text-secondary);">Direct message context</p>
+              </div>
+              <div style="margin-left: auto; display: flex; gap: 8px;">
+                <button class="btn btn-secondary btn-icon btn-sm" onclick="app.showChatSettings()">
+                  <i data-lucide="more-vertical"></i>
+                </button>
+              </div>
+            </div>
+
+            <!-- Body -->
+            <div class="chat-body" id="chat-window-messages">
+              <!-- Chat bubbles rendered dynamically -->
+            </div>
+
+            <!-- Footer input -->
+            <div class="chat-footer">
+              <div class="chat-input-wrapper">
+                <div class="chat-attachments">
+                  <button class="btn btn-secondary btn-icon" onclick="app.simulatePortfolioShare()" title="Share Portfolio Asset">
+                    <i data-lucide="folder" style="width: 18px; height: 18px;"></i>
+                  </button>
+                  <button class="btn btn-secondary btn-icon" onclick="app.simulateFileAttachment()" title="Attach File">
+                    <i data-lucide="paperclip" style="width: 18px; height: 18px;"></i>
+                  </button>
+                </div>
+                <input type="text" id="chat-message-input" class="form-control" placeholder="Write your message here..." onkeypress="app.handleChatKeyPress(event)">
+                <button class="btn btn-primary" onclick="app.sendChatMessage()">
+                  <i data-lucide="send" style="width: 18px; height: 18px;"></i>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ==========================================
+           SCREEN 10: EVENTS BOARD
+           ========================================== -->
+      <section id="screen-events" class="screen">
+        <div class="dashboard-header">
+          <div>
+            <h1 class="page-title">University Events & Competitions</h1>
+            <p style="color: var(--text-secondary); margin-top: 4px;">Discover campus hackathons, workshops, research symposiums, and startup accelerators.</p>
+          </div>
+        </div>
+
+        <!-- Filter tabs for events -->
+        <div class="chips-container" style="margin-bottom: 24px;" id="events-tab-filters">
+          <div class="chip selected" onclick="app.filterEvents('All', this)">All Events</div>
+          <div class="chip" onclick="app.filterEvents('Hackathons', this)">Hackathons</div>
+          <div class="chip" onclick="app.filterEvents('Research Opportunities', this)">Research Projects</div>
+          <div class="chip" onclick="app.filterEvents('Competitions', this)">Case Study & Startup pitches</div>
+          <div class="chip" onclick="app.filterEvents('Workshops', this)">Workshops & Seminars</div>
+        </div>
+
+        <!-- Events Grid -->
+        <div class="grid-3" id="events-list-grid">
+          <!-- Loaded dynamically -->
+        </div>
+      </section>
+
+      <!-- ==========================================
+           SCREEN 11: NOTIFICATIONS CENTER
+           ========================================== -->
+      <section id="screen-notifications" class="screen">
+        <div class="dashboard-header">
+          <div>
+            <h1 class="page-title">Notifications</h1>
+            <p style="color: var(--text-secondary); margin-top: 4px;">Track collaboration requests, invitations, and system updates.</p>
+          </div>
+          <button class="btn btn-secondary btn-sm" onclick="app.markAllNotificationsRead()">Mark all as read</button>
+        </div>
+
+        <div style="max-width: 800px; margin-top: 16px;" id="notifications-list-container">
+          <!-- Loaded dynamically -->
+        </div>
+      </section>
+
+      <!-- ==========================================
+           SCREEN 12: USER DASHBOARD (PERSONAL STATS)
+           ========================================== -->
+      <section id="screen-user-dashboard" class="screen">
+        <div class="dashboard-header">
+          <div>
+            <h1 class="page-title">My Hub Dashboard</h1>
+            <p style="color: var(--text-secondary); margin-top: 4px;">Manage your active collaborations, profile views, and skill endorsements.</p>
+          </div>
+          <button class="btn btn-outline btn-sm" onclick="app.logoutUser()">
+            <i data-lucide="log-out" style="width: 16px; height: 16px;"></i> Logout
+          </button>
+        </div>
+
+        <!-- Stats Counter Row -->
+        <div class="grid-4" style="margin-bottom: 32px;">
+          <div class="card metric-card">
+            <div class="metric-icon blue">
+              <i data-lucide="folder-check"></i>
+            </div>
+            <div class="metric-details">
+              <span class="metric-val" id="my-stats-projects">0</span>
+              <span class="metric-lbl">Created Projects</span>
+            </div>
+          </div>
+          <div class="card metric-card">
+            <div class="metric-icon teal">
+              <i data-lucide="users-2"></i>
+            </div>
+            <div class="metric-details">
+              <span class="metric-val" id="my-stats-connections">0</span>
+              <span class="metric-lbl">Active Connections</span>
+            </div>
+          </div>
+          <div class="card metric-card">
+            <div class="metric-icon gold">
+              <i data-lucide="eye"></i>
+            </div>
+            <div class="metric-details">
+              <span class="metric-val" id="my-stats-views">24</span>
+              <span class="metric-lbl">Portfolio Views</span>
+            </div>
+          </div>
+          <div class="card metric-card">
+            <div class="metric-icon green">
+              <i data-lucide="award"></i>
+            </div>
+            <div class="metric-details">
+              <span class="metric-val" id="my-stats-endorsements">12</span>
+              <span class="metric-lbl">Skill Endorsements</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Split Layout -->
+        <div class="grid-sidebar">
+          
+          <!-- Projects Owned & Joined -->
+          <div style="display: flex; flex-direction: column; gap: 24px;">
+            <div class="card">
+              <h3 style="font-size: 1.1rem; margin-bottom: 16px; display: flex; align-items: center; justify-content: space-between;">
+                <span>Projects Created by Me</span>
+                <button class="btn btn-primary btn-sm" onclick="app.openCreateProjectModal()">Create Project</button>
+              </h3>
+              <div style="display: flex; flex-direction: column; gap: 16px;" id="my-created-projects-list">
+                <!-- Dynamically populated list -->
+              </div>
+            </div>
+
+            <div class="card">
+              <h3 style="font-size: 1.1rem; margin-bottom: 16px;">Projects I Joined</h3>
+              <div style="display: flex; flex-direction: column; gap: 16px;" id="my-joined-projects-list">
+                <!-- Dynamically populated list -->
+              </div>
+            </div>
+          </div>
+
+          <!-- Activity Timeline & Skill Badges -->
+          <div style="display: flex; flex-direction: column; gap: 24px;">
+            <!-- Profile Overview Quick Card -->
+            <div class="card" style="text-align: center;">
+              <img id="my-profile-pfp" src="" alt="My PFP" style="width: 80px; height: 80px; border-radius: 50%; object-fit: cover; border: 3px solid var(--accent); margin: 0 auto 12px auto; display: block;">
+              <h3 id="my-profile-name">Student Name</h3>
+              <p id="my-profile-dept-year" style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 12px;">Branch • Year</p>
+              <div class="verified-badge"><i data-lucide="badge-check" style="width: 12px; height: 12px;"></i> Verified Student</div>
+            </div>
+
+            <!-- Activity Log -->
+            <div class="card">
+              <h3 style="font-size: 1.1rem; margin-bottom: 16px;">My Campus Timeline</h3>
+              <div class="timeline" id="my-activity-timeline">
+                <!-- Populated dynamically -->
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+
+  <!-- ==========================================
+       SCREEN 8: COLLABORATION REQUEST DIALOG (MODAL)
+       ========================================== -->
+  <div id="modal-collab-request" class="modal-overlay">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 class="modal-title">Send Collaboration Request</h3>
+        <button class="modal-close" onclick="app.closeCollabModal()"><i data-lucide="x"></i></button>
+      </div>
+      <form id="form-collab-request" onsubmit="event.preventDefault(); app.submitCollabRequest();">
+        <div class="modal-body">
+          <input type="hidden" id="collab-student-id">
+          
+          <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 20px; background-color: var(--bg-secondary); padding: 12px; border-radius: var(--radius-sm); border: 1px solid var(--border);">
+            <img id="collab-student-avatar" src="" alt="Avatar" style="width: 44px; height: 44px; border-radius: 50%; object-fit: cover;">
+            <div>
+              <h4 id="collab-student-name" style="font-size: 0.95rem;">Student Name</h4>
+              <p id="collab-student-dept" style="font-size: 0.75rem; color: var(--text-muted);">Department</p>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="collab-project-select" class="form-label">Associate with Project</label>
+            <select id="collab-project-select" class="form-control" required>
+              <!-- Populated dynamically with my owned projects -->
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="collab-role" class="form-label">Role Offered / Needed</label>
+            <input type="text" id="collab-role" class="form-control" placeholder="e.g. Front-End React Developer, UI/UX Designer" required>
+          </div>
+
+          <div class="form-group">
+            <label for="collab-intro" class="form-label">Introduction & Objectives</label>
+            <textarea id="collab-intro" class="form-control" rows="4" placeholder="Briefly describe the project goals and why you'd like to collaborate..." required></textarea>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label for="collab-timeline" class="form-label">Expected Duration</label>
+              <input type="text" id="collab-timeline" class="form-control" placeholder="e.g. 2 weeks, 3 months" required>
+            </div>
+            <div class="form-group">
+              <label for="collab-availability" class="form-label">Weekly Commitment</label>
+              <input type="text" id="collab-availability" class="form-control" placeholder="e.g. 5-8 hours/week" required>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" onclick="app.closeCollabModal()">Cancel</button>
+          <button type="submit" class="btn btn-primary">Send Request</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+
+  <!-- ==========================================
+       CREATE PROJECT MODAL (QUICK ACTION)
+       ========================================== -->
+  <div id="modal-create-project" class="modal-overlay">
+    <div class="modal-content" style="max-width: 600px;">
+      <div class="modal-header">
+        <h3 class="modal-title">Create Project Opportunities</h3>
+        <button class="modal-close" onclick="app.closeCreateProjectModal()"><i data-lucide="x"></i></button>
+      </div>
+      <form id="form-create-project" onsubmit="event.preventDefault(); app.submitCreateProject();">
+        <div class="modal-body" style="max-height: 70vh; overflow-y: auto;">
+          <div class="form-group">
+            <label for="new-project-title" class="form-label">Project Title</label>
+            <input type="text" id="new-project-title" class="form-control" placeholder="e.g., IoT Smart Classroom System, Campus E-Comm App" required>
+          </div>
+
+          <div class="form-group">
+            <label for="new-project-desc" class="form-label">Description & Goals</label>
+            <textarea id="new-project-desc" class="form-control" rows="4" placeholder="Detail the problem, technical stack, and target milestones..." required></textarea>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label for="new-project-size" class="form-label">Desired Team Size</label>
+              <input type="number" id="new-project-size" class="form-control" min="2" max="15" value="4" required>
+            </div>
+            <div class="form-group">
+              <label for="new-project-deadline" class="form-label">Target Completion/Deadline</label>
+              <input type="date" id="new-project-deadline" class="form-control" required>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label for="new-project-mentor" class="form-label">Faculty Mentor (Optional)</label>
+              <input type="text" id="new-project-mentor" class="form-control" placeholder="e.g. Dr. K. Nair">
+            </div>
+            <div class="form-group">
+              <label for="new-project-type" class="form-label">Category</label>
+              <select id="new-project-type" class="form-control" required>
+                <option value="Hackathon">Hackathon Project</option>
+                <option value="Research">Research & Paper</option>
+                <option value="Startup">Startup Venture</option>
+                <option value="Competition">Academic Competition</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Select Skills Needed (Select up to 5)</label>
+            <div id="project-skills-selector" class="chips-container">
+              <!-- Dynamically populated skills chips -->
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" onclick="app.closeCreateProjectModal()">Cancel</button>
+          <button type="submit" class="btn btn-primary">Publish Listing</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+
+  <!-- ==========================================
+       TOAST SYSTEM CONTAINER
+       ========================================== -->
+  <div id="toast-container" class="toast-container"></div>
+
+  <!-- Main JavaScript App File -->
+  <script src="app.js"></script>
+</body>
+</html>
