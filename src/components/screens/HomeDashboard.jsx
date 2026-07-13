@@ -2,6 +2,8 @@ import React from 'react';
 import { useApp } from '../../context/AppContext';
 import { Bell, Megaphone, Trophy, PlusCircle, Search, Calendar, CheckCircle } from 'lucide-react';
 import GlowCard from '../visual/GlowCard';
+import DecryptedText from '../visual/DecryptedText';
+import Magnet from '../visual/Magnet';
 
 const HomeDashboard = ({ onOpenCreateProject, onOpenCollabRequest }) => {
   const { 
@@ -39,50 +41,66 @@ const HomeDashboard = ({ onOpenCreateProject, onOpenCollabRequest }) => {
     <section id="screen-home" className="screen active">
       <div className="dashboard-header">
         <div>
-          <h1 className="page-title">Welcome back, <span id="dash-user-firstname">{firstName}</span>!</h1>
+          <h1 className="page-title">
+            <DecryptedText text={`Welcome back, ${firstName}!`} speed={50} maxIterations={12} animateOn="hover" />
+          </h1>
           <p style={{ color: 'var(--text-secondary)', marginTop: '4px' }}>Here is what's happening in your campus community today.</p>
         </div>
         <div style={{ display: 'flex', gap: '12px' }}>
-          <button className="btn btn-outline" onClick={() => navigateTo('notifications')}>
-            <Bell size={18} />
-            {unreadNotis && (
-              <span id="dash-noti-indicator" style={{ display: 'inline-block', width: '8px', height: '8px', borderRadius: '50%', backgroundColor: 'var(--error)', marginLeft: '4px' }}></span>
-            )}
-          </button>
+          <Magnet>
+            <button className="btn btn-outline" onClick={() => navigateTo('notifications')}>
+              <Bell size={18} />
+              {unreadNotis && (
+                <span id="dash-noti-indicator" style={{ display: 'inline-block', width: '8px', height: '8px', borderRadius: '50%', backgroundColor: 'var(--error)', marginLeft: '4px' }}></span>
+              )}
+            </button>
+          </Magnet>
         </div>
       </div>
 
       {/* Welcome Banner */}
       <div className="dashboard-banner">
         <div className="banner-content">
-          <h2 className="banner-title">Build Something Extraordinary</h2>
+          <h2 className="banner-title" style={{ fontSize: '1.8rem', fontWeight: 800 }}>
+            <DecryptedText text="Build Something Extraordinary" speed={45} maxIterations={14} animateOn="hover" />
+          </h2>
           <p className="banner-subtitle">Interdisciplinary collaboration breeds innovation. Join forces with designers, coders, and marketers to bring your startup, research, or hackathon ideas to life.</p>
-          <div className="banner-actions">
-            <button className="btn btn-primary" onClick={onOpenCreateProject}>Create Project Listing</button>
-            <button 
-              className="btn btn-secondary" 
-              onClick={() => navigateTo('discover')}
-            >
-              Find Collaborators
-            </button>
+          <div className="banner-actions" style={{ display: 'flex', gap: '12px' }}>
+            <Magnet>
+              <button className="btn btn-primary" onClick={onOpenCreateProject}>Create Project Listing</button>
+            </Magnet>
+            <Magnet>
+              <button 
+                className="btn btn-secondary" 
+                onClick={() => navigateTo('discover')}
+              >
+                Find Collaborators
+              </button>
+            </Magnet>
           </div>
         </div>
       </div>
 
       {/* Quick Action Buttons */}
       <div className="quick-actions-bar">
-        <div className="quick-action-btn btn-create" onClick={onOpenCreateProject}>
-          <PlusCircle />
-          <span>List a Project</span>
-        </div>
-        <div className="quick-action-btn btn-find" onClick={() => navigateTo('discover')}>
-          <Search />
-          <span>Find Teammates</span>
-        </div>
-        <div className="quick-action-btn btn-event" onClick={() => navigateTo('events')}>
-          <Calendar />
-          <span>Browse Events</span>
-        </div>
+        <Magnet>
+          <div className="quick-action-btn btn-create" onClick={onOpenCreateProject}>
+            <PlusCircle />
+            <span>List a Project</span>
+          </div>
+        </Magnet>
+        <Magnet>
+          <div className="quick-action-btn btn-find" onClick={() => navigateTo('discover')}>
+            <Search />
+            <span>Find Teammates</span>
+          </div>
+        </Magnet>
+        <Magnet>
+          <div className="quick-action-btn btn-event" onClick={() => navigateTo('events')}>
+            <Calendar />
+            <span>Browse Events</span>
+          </div>
+        </Magnet>
       </div>
 
       {/* Main Dashboard Content Grid */}
