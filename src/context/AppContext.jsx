@@ -1,68 +1,51 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { 
-  initialStudents, 
-  initialProjects, 
-  initialEvents, 
-  initialNotifications, 
-  initialMessages, 
-  getLocalStorageData, 
-  setLocalStorageData 
-} from '../data/mockData';
 
 const AppContext = createContext();
 
 export const useApp = () => useContext(AppContext);
+
+const API_URL = 'http://localhost:3001/api';
 
 export const AppProvider = ({ children }) => {
   // Navigation State
   const [activeScreen, setActiveScreenState] = useState('splash');
   const [historyStack, setHistoryStack] = useState([]);
   
-  // Database States loaded from LocalStorage or Fallbacks
-  const [currentUser, setCurrentUser] = useState(() => getLocalStorageData('currentUser', null));
-  const [students, setStudents] = useState(() => getLocalStorageData('students', initialStudents));
-  const [projects, setProjects] = useState(() => getLocalStorageData('projects', initialProjects));
-  const [events, setEvents] = useState(() => getLocalStorageData('events', initialEvents));
-  const [notifications, setNotifications] = useState(() => getLocalStorageData('notifications', initialNotifications));
-  const [messages, setMessages] = useState(() => getLocalStorageData('messages', initialMessages));
+  // Database States loaded from API Backend
+  const [currentUser, setCurrentUser] = useState(() => {
+    try {
+      const saved = localStorage.getItem('campushub_currentUser');
+      return saved ? JSON.parse(saved) : null;
+    } catch {
+      return null;
+    }
+  });
+
+  const [students, setStudents] = useState([]);
+  const [projects, setProjects] = useState([]);
+  const [events, setEvents] = useState([]);
+  const [notifications, setNotifications] = useState([]);
+  const [messages, setMessages] = useState([]);
+  const [loading, setLoading] = useState(true);
   
   // Active states
   const [activeChatId, setActiveChatId] = useState(null);
   const [activeProjectId, setActiveProjectId] = useState(null);
   const [activeStudentId, setActiveStudentId] = useState(null);
   const [activeEventTab, setActiveEventTab] = useState('All');
-  const [timelineEvents, setTimelineEvents] = useState(() => getLocalStorageData('timelineEvents', [
-    { title: 'Profile Created', desc: 'Verified student status and published digital portfolio.', time: '1 hour ago' }
-  ]));
-
-  // Sync to LocalStorage whenever states change
-  useEffect(() => {
-    setLocalStorageData('currentUser', currentUser);
-  }, [currentUser]);
-
-  useEffect(() => {
-    setLocalStorageData('students', students);
-  }, [students]);
-
-  useEffect(() => {
-    setLocalStorageData('projects', projects);
-  }, [projects]);
-
-  useEffect(() => {
-    setLocalStorageData('events', events);
-  }, [events]);
-
-  useEffect(() => {
-    setLocalStorageData('notifications', notifications);
-  }, [notifications]);
-
-  useEffect(() => {
-    setLocalStorageData('messages', messages);
-  }, [messages]);
-
-  useEffect(() => {
-    setLocalStorageData('timelineEvents', timelineEvents);
-  }, [timelineEvents]);
+  
+  const [timelineEvents, setTimelineEvents] = useState(() => {
+    try {
+      const saved = localStorage.getItem('campushub_timelineEvents');
+      return saved ? JSON.parse(saved) : [
+        { title: 'Profile Created', desc: 'Verified student status and published digital portfolio.', time: '1 hour ago' }
+      ];
+    } catch {
+      return [
+        { title: 'Profile Created', desc: 'Verified student status and published digital portfolio.', time: '1 hour ago' }
+      ];
+    }
+  });
 
   // Toast notifications helpers
   const [toasts, setToasts] = useState([]);
@@ -73,6 +56,56 @@ export const AppProvider = ({ children }) => {
       setToasts(prev => prev.filter(t => t.id !== id));
     }, 3400);
   };
+
+  // Sync auth state to LocalStorage
+  useEffect(() => {
+    if (currentUser) {
+      localStorage.setItem('campushub_currentUser', JSON.stringify(currentUser));
+    } else {
+      localStorage.removeItem('campushub_currentUser');
+    }
+  }, [currentUser]);
+
+  useEffect(() => {
+    localStorage.setItem('campushub_timelineEvents', JSON.stringify(timelineEvents));
+  }, [timelineEvents]);
+
+  // Load initial backend database state
+  const loadDatabaseState = async () => {
+    try {
+      setLoading(true);
+      const [stdRes, projRes, evsRes, notsRes, msgsRes] = await Promise.all([
+        fetch(`${API_URL}/students`),
+        fetch(`${API_URL}/projects`),
+        fetch(`${API_URL}/events`),
+        fetch(`${API_URL}/notifications`),
+        fetch(`${API_URL}/messages`)
+      ]);
+
+      const [stds, projs, evs, nots, msgs] = await Promise.all([
+        stdRes.json(),
+        projRes.json(),
+        evsRes.json(),
+        notsRes.json(),
+        msgsRes.json()
+      ]);
+
+      setStudents(stds);
+      setProjects(projs);
+      setEvents(evs);
+      setNotifications(nots);
+      setMessages(msgs);
+    } catch (e) {
+      console.error("Failed to connect to SQLite backend:", e);
+      showToast("Cannot connect to backend server. Make sure node server is running.", "error");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadDatabaseState();
+  }, []);
 
   // Helper match score
   const calculateAIMatchScore = (requiredSkills, studentSkills) => {
@@ -105,32 +138,24 @@ export const AppProvider = ({ children }) => {
   };
 
   // Auth Operations
-  const loginDemoUser = () => {
-    const demo = {
-      id: 'demo_user',
-      name: 'Rohan Sen',
-      dept: 'Design & Fine Arts',
-      year: '3rd Year',
-      skills: ['UI/UX', 'Figma', 'React', 'Flutter'],
-      bio: 'Interface designer focused on interactive products. Building Campus Hub interfaces with React! Looking to connect with backend and marketing students.',
-      avatar: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?auto=format&fit=crop&q=80&w=150',
-      github: 'https://github.com',
-      linkedin: 'https://linkedin.com',
-      availability: 'Open for projects',
-      interest: 'Hackathons, Startups',
-      trustScore: 95,
-      endorsements: 12,
-      connections: 6,
-      verified: true
-    };
-    setCurrentUser(demo);
-    // Add to students list if not present
-    setStudents(prev => {
-      if (prev.some(s => s.id === demo.id)) return prev;
-      return [...prev, demo];
-    });
-    showToast('Logged in as Demo Student Rohan Sen!', 'success');
-    navigateTo('home');
+  const loginDemoUser = async () => {
+    try {
+      const res = await fetch(`${API_URL}/students/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: 's2' }) // Log in as Riya Sen demo student
+      });
+      if (res.ok) {
+        const demoUser = await res.json();
+        setCurrentUser(demoUser);
+        showToast(`Logged in as Demo Student ${demoUser.name}!`, 'success');
+        navigateTo('home');
+      } else {
+        showToast("Error retrieving demo student profile.", "error");
+      }
+    } catch (e) {
+      showToast("API server offline.", "error");
+    }
   };
 
   const logoutUser = () => {
@@ -143,62 +168,60 @@ export const AppProvider = ({ children }) => {
     showToast(`Demo OTP Code "123456" sent to ${email}`, 'info');
   };
 
-  const completeSignup = (name, dept, year, bio, skills, avatar) => {
-    const newUser = {
-      id: 'custom_user_' + Date.now(),
-      name,
-      dept,
-      year,
-      skills,
-      bio: bio || 'Welcome to my student profile workspace.',
-      avatar: avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=150',
-      github: 'https://github.com',
-      linkedin: 'https://linkedin.com',
-      availability: 'Open for projects',
-      interest: 'Hackathons, Startups',
-      trustScore: 90,
-      endorsements: 0,
-      connections: 0,
-      verified: true
-    };
-    setCurrentUser(newUser);
-    setStudents(prev => [...prev, newUser]);
-    showToast('Student Profile Created!', 'success');
-    navigateTo('home');
+  const completeSignup = async (name, dept, year, bio, skills, avatar) => {
+    const id = 'custom_user_' + Date.now();
+    try {
+      const res = await fetch(`${API_URL}/students`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id, name, dept, year, bio, skills, avatar })
+      });
+      if (res.ok) {
+        const user = await res.json();
+        setCurrentUser(user);
+        await loadDatabaseState();
+        showToast('Student Profile Created!', 'success');
+        navigateTo('home');
+      } else {
+        showToast("Error creating database user.", "error");
+      }
+    } catch (e) {
+      showToast("API server offline.", "error");
+    }
   };
 
   // Projects Operations
-  const addProject = (title, desc, size, deadline, mentor, category, requiredSkills) => {
+  const addProject = async (title, desc, size, deadline, mentor, category, requiredSkills) => {
     if (!currentUser) return;
-    const newProject = {
-      id: 'p_custom_' + Date.now(),
-      title,
-      desc,
-      skillsNeeded: requiredSkills,
-      ownerId: currentUser.id,
-      mentor: mentor || 'Undecided',
-      teamSize: parseInt(size),
-      deadline,
-      category,
-      members: [
-        { studentId: currentUser.id, role: 'Project Initiator / Leader' }
-      ],
-      comments: []
-    };
-    setProjects(prev => [...prev, newProject]);
-    addTimelineEvent(
-      'Published Project listing',
-      `You listed "${title}" looking for ${requiredSkills.join(', ')} capabilities.`,
-      'Just now'
-    );
-    showToast('Project published to Campus Board!', 'success');
+    const id = 'p_custom_' + Date.now();
+    try {
+      const res = await fetch(`${API_URL}/projects`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id, title, desc, skillsNeeded: requiredSkills, ownerId: currentUser.id, mentor, teamSize: size, deadline, category
+        })
+      });
+      if (res.ok) {
+        await loadDatabaseState();
+        addTimelineEvent(
+          'Published Project listing',
+          `You listed "${title}" looking for ${requiredSkills.join(', ')} capabilities.`,
+          'Just now'
+        );
+        showToast('Project published to Campus Board!', 'success');
+      } else {
+        showToast("Error creating project listing.", "error");
+      }
+    } catch (e) {
+      showToast("API server offline.", "error");
+    }
   };
 
   const joinProjectRequest = (projectId, ownerId, role, intro, timeline, availability) => {
     if (!currentUser) return;
     const recipient = students.find(s => s.id === ownerId);
     showToast(`Collab request sent to ${recipient ? recipient.name : 'Project Owner'}!`, 'success');
-    
     addTimelineEvent(
       'Sent request',
       `You invited ${recipient ? recipient.name : 'Owner'} to join as "${role}"`,
@@ -206,36 +229,41 @@ export const AppProvider = ({ children }) => {
     );
   };
 
-  const addProjectComment = (projectId, text) => {
+  const addProjectComment = async (projectId, text) => {
     if (!currentUser) return;
-    setProjects(prev => prev.map(p => {
-      if (p.id === projectId) {
-        return {
-          ...p,
-          comments: [...p.comments, { author: currentUser.name, text, time: 'Just now' }]
-        };
+    try {
+      const res = await fetch(`${API_URL}/projects/${projectId}/comments`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ author: currentUser.name, text })
+      });
+      if (res.ok) {
+        await loadDatabaseState();
+      } else {
+        showToast("Error posting comment.", "error");
       }
-      return p;
-    }));
-    showToast('Comment posted successfully.', 'success');
+    } catch (e) {
+      showToast("API server offline.", "error");
+    }
   };
 
   // Event Registrations
-  const toggleEventRegistration = (eventId) => {
-    let title = '';
-    let isReg = false;
-    setEvents(prev => prev.map(ev => {
-      if (ev.id === eventId) {
-        title = ev.title;
-        isReg = !ev.registered;
-        return { ...ev, registered: isReg };
+  const toggleEventRegistration = async (eventId) => {
+    try {
+      const res = await fetch(`${API_URL}/events/${eventId}/register`, { method: 'POST' });
+      if (res.ok) {
+        const data = await res.json();
+        await loadDatabaseState();
+        showToast(
+          data.registered ? `Successfully registered for event` : `Cancelled registration`,
+          'success'
+        );
+      } else {
+        showToast("Error modifying registration.", "error");
       }
-      return ev;
-    }));
-    showToast(
-      isReg ? `Successfully registered for: ${title}` : `Cancelled registration for: ${title}`,
-      'success'
-    );
+    } catch (e) {
+      showToast("API server offline.", "error");
+    }
   };
 
   // Chats/Messaging Operations
@@ -243,55 +271,42 @@ export const AppProvider = ({ children }) => {
     setActiveChatId(chatId);
   };
 
-  const sendChatMessage = (text) => {
+  const sendChatMessage = async (text) => {
     if (!currentUser || !activeChatId) return;
 
-    setMessages(prev => prev.map(chat => {
-      if (chat.chatId === activeChatId) {
-        const updatedChat = {
-          ...chat,
-          history: [...chat.history, {
-            senderId: currentUser.id,
-            senderName: currentUser.name,
-            text,
-            time: 'Just now'
-          }]
-        };
+    try {
+      const res = await fetch(`${API_URL}/messages/send`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          chatId: activeChatId,
+          senderId: currentUser.id,
+          senderName: currentUser.name,
+          text
+        })
+      });
 
-        // Simulate a mock response after 1.5 seconds
-        setTimeout(() => {
-          setMessages(prev2 => prev2.map(c => {
-            if (c.chatId === activeChatId) {
-              const replyText = c.isChannel 
-                ? `Great! I've updated the repository. Let's sync with our Faculty Mentor Dr. Amit later this week.` 
-                : "Sounds good! Let's schedule a call tomorrow afternoon to discuss details.";
-              return {
-                ...c,
-                history: [...c.history, {
-                  senderId: 'bot_reply',
-                  senderName: c.isChannel ? 'Aarav Mehta' : c.name,
-                  text: replyText,
-                  time: 'Just now'
-                }]
-              };
-            }
-            return c;
-          }));
-        }, 1500);
+      if (res.ok) {
+        // Optimistic refresh
+        await loadDatabaseState();
 
-        return updatedChat;
+        // Refetch chat after 1.8s to fetch the simulated live backend reply
+        setTimeout(async () => {
+          await loadDatabaseState();
+        }, 1800);
       }
-      return chat;
-    }));
+    } catch (e) {
+      showToast("API server offline.", "error");
+    }
   };
 
-  const openDirectChat = (studentId) => {
+  const openDirectChat = async (studentId) => {
     const s = students.find(x => x.id === studentId);
     if (!s) return;
 
-    // Check if chat already exists
     const chatExists = messages.some(m => m.chatId === s.id);
     if (!chatExists) {
+      // Direct message will automatically seed empty chat on API request
       setMessages(prev => [...prev, {
         chatId: s.id,
         name: s.name,
@@ -307,83 +322,58 @@ export const AppProvider = ({ children }) => {
 
   const simulatePortfolioShare = () => {
     if (!currentUser || !activeChatId) return;
-    setMessages(prev => prev.map(c => {
-      if (c.chatId === activeChatId) {
-        return {
-          ...c,
-          history: [...c.history, {
-            senderId: currentUser.id,
-            senderName: currentUser.name,
-            text: `📂 Shared Portfolio Asset: Interactive Case Studies Showcase`,
-            time: 'Just now'
-          }]
-        };
-      }
-      return c;
-    }));
-    showToast('Portfolio asset shared to chat.', 'success');
+    sendChatMessage(`📂 Shared Portfolio Asset: Interactive Case Studies Showcase`);
   };
 
   const simulateFileAttachment = () => {
     if (!currentUser || !activeChatId) return;
-    setMessages(prev => prev.map(c => {
-      if (c.chatId === activeChatId) {
-        return {
-          ...c,
-          history: [...c.history, {
-            senderId: currentUser.id,
-            senderName: currentUser.name,
-            text: `📄 Project_Brief_Draft.pdf (1.2 MB)`,
-            time: 'Just now'
-          }]
-        };
-      }
-      return c;
-    }));
-    showToast('Document attached to chat.', 'success');
+    sendChatMessage(`📄 Project_Brief_Draft.pdf (1.2 MB)`);
   };
 
   // Notifications Operations
-  const markAllNotificationsRead = () => {
-    setNotifications(prev => prev.map(n => ({ ...n, read: true })));
-    showToast('All notifications marked as read.', 'success');
-  };
-
-  const acceptInvitation = (notificationId) => {
-    if (!currentUser) return;
-    
-    // Find notification
-    const n = notifications.find(x => x.id === notificationId);
-    if (n) {
-      // Invite to Smart Campus IoT Grid (mocked project id: p1)
-      setProjects(prev => prev.map(proj => {
-        if (proj.id === 'p1' && !proj.members.some(m => m.studentId === currentUser.id)) {
-          return {
-            ...proj,
-            members: [...proj.members, { studentId: currentUser.id, role: 'UI/UX Consultant' }]
-          };
-        }
-        return proj;
-      }));
-
-      // Update current user connections
-      setCurrentUser(prev => prev ? { ...prev, connections: prev.connections + 1 } : null);
-      
-      // Remove notification
-      setNotifications(prev => prev.filter(x => x.id !== notificationId));
-      
-      showToast('Accepted invitation to join project!', 'success');
-      addTimelineEvent(
-        'Joined project team',
-        `You joined the "Smart Campus IoT Grid" team as UI/UX Consultant.`,
-        'Just now'
-      );
+  const markAllNotificationsRead = async () => {
+    try {
+      const res = await fetch(`${API_URL}/notifications/read-all`, { method: 'POST' });
+      if (res.ok) {
+        await loadDatabaseState();
+      }
+    } catch (e) {
+      showToast("API server offline.", "error");
     }
   };
 
-  const rejectInvitation = (notificationId) => {
-    setNotifications(prev => prev.filter(x => x.id !== notificationId));
-    showToast('Invitation declined.', 'info');
+  const acceptInvitation = async (notificationId) => {
+    if (!currentUser) return;
+    try {
+      const res = await fetch(`${API_URL}/notifications/${notificationId}/accept`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ studentId: currentUser.id })
+      });
+      if (res.ok) {
+        await loadDatabaseState();
+        // Update local user details connections
+        setCurrentUser(prev => prev ? { ...prev, connections: prev.connections + 1 } : null);
+        addTimelineEvent(
+          'Joined project team',
+          `You joined the "Smart Campus IoT Grid" team as UI/UX Consultant.`,
+          'Just now'
+        );
+      }
+    } catch (e) {
+      showToast("API server offline.", "error");
+    }
+  };
+
+  const declineInvitation = async (notificationId) => {
+    try {
+      const res = await fetch(`${API_URL}/notifications/${notificationId}/decline`, { method: 'POST' });
+      if (res.ok) {
+        await loadDatabaseState();
+      }
+    } catch (e) {
+      showToast("API server offline.", "error");
+    }
   };
 
   return (
@@ -401,6 +391,7 @@ export const AppProvider = ({ children }) => {
       activeEventTab,
       timelineEvents,
       toasts,
+      loading,
       
       setActiveProjectId,
       setActiveStudentId,

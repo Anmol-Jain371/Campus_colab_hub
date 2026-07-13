@@ -1,0 +1,262 @@
+/* ==========================================
+   VISUAL STYLES & INTERACTIVE GLOW EFFECTS
+   ========================================== */
+
+/* 1. Animated Grid Background */
+.grid-bg-wrapper {
+  position: relative;
+  width: 100%;
+  min-height: 100vh;
+  overflow: hidden;
+  background-color: #030712; /* Rich dark background */
+}
+
+/* Custom overlay for dark layouts */
+.auth-layout {
+  background-color: #030712;
+  min-height: 100vh;
+  width: 100%;
+}
+
+.mesh-gradient {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 1;
+  background: 
+    radial-gradient(circle at 10% 20%, rgba(13, 148, 136, 0.15) 0%, transparent 40%),
+    radial-gradient(circle at 90% 80%, rgba(30, 64, 175, 0.15) 0%, transparent 40%),
+    radial-gradient(circle at 50% 50%, rgba(15, 23, 42, 0.8) 0%, #030712 100%);
+  animation: meshFlow 20s ease infinite alternate;
+}
+
+.grid-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 2;
+  background-image: 
+    linear-gradient(to right, rgba(255, 255, 255, 0.04) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(255, 255, 255, 0.04) 1px, transparent 1px);
+  background-size: 40px 40px;
+  mask-image: radial-gradient(circle at 50% 50%, black 60%, transparent 100%);
+  -webkit-mask-image: radial-gradient(circle at 50% 50%, black 60%, transparent 100%);
+}
+
+.interactive-content {
+  position: relative;
+  z-index: 3;
+  width: 100%;
+  height: 100%;
+}
+
+/* 2. Interactive Spotlight Glow Card */
+.glow-card-container {
+  position: relative;
+  border-radius: var(--radius-md);
+  background: rgba(15, 23, 42, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  backdrop-filter: blur(12px);
+  overflow: hidden;
+  transition: border-color 0.3s, transform 0.3s;
+  box-shadow: 0 4px 30px rgba(0, 0, 0, 0.2);
+}
+
+.glow-card-container:hover {
+  transform: translateY(-2px);
+  border-color: rgba(13, 148, 136, 0.4);
+}
+
+.glow-card-border-effect {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 1;
+  pointer-events: none;
+  background: radial-gradient(
+    400px circle at var(--mouse-x) var(--mouse-y),
+    rgba(13, 148, 136, 0.15),
+    transparent 40%
+  );
+  opacity: var(--glow-opacity);
+  transition: opacity 0.3s;
+}
+
+/* Glowing border line */
+.glow-card-container::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 0;
+  border-radius: inherit;
+  padding: 1px;
+  background: radial-gradient(
+    250px circle at var(--mouse-x) var(--mouse-y),
+    rgba(13, 148, 136, 0.5),
+    transparent 40%
+  );
+  -webkit-mask: 
+    linear-gradient(#fff 0 0) content-box, 
+    linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+          mask-composite: exclude;
+  pointer-events: none;
+  opacity: var(--glow-opacity);
+  transition: opacity 0.3s;
+}
+
+.glow-card-content {
+  position: relative;
+  z-index: 2;
+  height: 100%;
+}
+
+/* 3. Text and mesh keyframes */
+@keyframes meshFlow {
+  0% {
+    background-position: 0% 0%;
+  }
+  100% {
+    background-position: 100% 100%;
+  }
+}
+
+/* Circular progress stroke animation */
+.circular-progress svg {
+  transform: rotate(-90deg);
+}
+
+.circular-progress circle {
+  transition: stroke-dashoffset 0.6s ease;
+}
+
+/* Override card properties for dark aesthetic */
+.app-container {
+  background-color: #0b0f19;
+}
+
+.sidebar {
+  background-color: #0f172a !important;
+  border-right: 1px solid rgba(255, 255, 255, 0.08) !important;
+}
+
+.main-wrapper {
+  background-color: #0b0f19 !important;
+}
+
+.sidebar-user:hover {
+  background-color: rgba(255, 255, 255, 0.05) !important;
+}
+
+.sidebar-user {
+  border-top: 1px solid rgba(255, 255, 255, 0.08) !important;
+}
+
+.nav-link:hover {
+  background-color: rgba(255, 255, 255, 0.03) !important;
+  color: white !important;
+}
+
+.nav-link.active {
+  background-color: rgba(13, 148, 136, 0.15) !important;
+  color: var(--accent) !important;
+}
+
+.card {
+  background-color: #0f172a !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  color: #f8fafc !important;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  color: #f8fafc !important;
+}
+
+.form-control {
+  background-color: #070a13 !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  color: #f8fafc !important;
+}
+
+.form-control:focus {
+  border-color: var(--accent) !important;
+  box-shadow: 0 0 0 3px rgba(13, 148, 136, 0.25) !important;
+}
+
+.badge-muted {
+  background-color: rgba(255, 255, 255, 0.08) !important;
+  color: #94a3b8 !important;
+}
+
+.quick-action-btn {
+  background-color: #0f172a !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  color: #f8fafc !important;
+}
+
+.quick-action-btn:hover {
+  border-color: var(--accent) !important;
+  box-shadow: var(--shadow-glow) !important;
+}
+
+.search-filter-panel {
+  background-color: #0f172a !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+}
+
+.filter-select {
+  background-color: #070a13 !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  color: #f8fafc !important;
+}
+
+.chat-sidebar {
+  background-color: #0f172a !important;
+  border-right: 1px solid rgba(255, 255, 255, 0.08) !important;
+}
+
+.chat-main {
+  background-color: #0b0f19 !important;
+}
+
+.chat-header {
+  background-color: #0f172a !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
+}
+
+.chat-footer {
+  background-color: #0f172a !important;
+  border-top: 1px solid rgba(255, 255, 255, 0.08) !important;
+}
+
+.chat-list-item:hover {
+  background-color: rgba(255, 255, 255, 0.02) !important;
+}
+
+.chat-list-item.active {
+  background-color: rgba(13, 148, 136, 0.1) !important;
+}
+
+.msg-bubble {
+  background-color: #1e293b !important;
+  color: #f8fafc !important;
+}
+
+.msg-wrapper.sent .msg-bubble {
+  background-color: var(--accent) !important;
+  color: white !important;
+}
+
+.discussion-input-wrapper {
+  background-color: #070a13 !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+}

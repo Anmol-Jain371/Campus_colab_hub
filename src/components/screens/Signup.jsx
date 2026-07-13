@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
 import { Camera } from 'lucide-react';
 import { skillsList } from '../../data/mockData';
+import GridBackground from '../visual/GridBackground';
 
 const Signup = () => {
   const { sendMockOTP, completeSignup, showToast } = useApp();
@@ -63,12 +64,13 @@ const Signup = () => {
   };
 
   return (
-    <div id="screen-signup" className="screen signup-wrapper active">
-      <div className="signup-card">
-        <div className="signup-header">
-          <h2 className="signup-title">Create Student Profile</h2>
-          <p className="signup-desc">Verify your credentials and set up your student portfolio</p>
-        </div>
+    <GridBackground>
+      <div id="screen-signup" className="screen signup-wrapper active" style={{ background: 'transparent' }}>
+        <div className="signup-card" style={{ border: '1px solid rgba(255,255,255,0.08)', background: 'rgba(15,23,42,0.7)', color: 'white' }}>
+          <div className="signup-header">
+            <h2 className="signup-title">Create Student Profile</h2>
+            <p className="signup-desc" style={{ color: '#94a3b8' }}>Verify your credentials and set up your student portfolio</p>
+          </div>
 
         {step === 1 ? (
           <div id="signup-step-1" className="signup-step active">
@@ -239,8 +241,9 @@ const Signup = () => {
             </form>
           </div>
         )}
+        </div>
       </div>
-    </div>
+    </GridBackground>
   );
 };
 

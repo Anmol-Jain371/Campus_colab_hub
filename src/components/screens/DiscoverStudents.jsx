@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
 import { Search, CheckCircle, ShieldCheck, Github, Linkedin, MessageSquare, UserPlus, ArrowLeft } from 'lucide-react';
+import GlowCard from '../visual/GlowCard';
 
 const DiscoverStudents = ({ onOpenCollabRequest }) => {
   const { 
@@ -240,36 +241,38 @@ const DiscoverStudents = ({ onOpenCollabRequest }) => {
           filteredStudents.map(s => {
             const matchScore = calculateAIMatchScore(s.skills, currentUser.skills);
             return (
-              <div key={s.id} className="card card-hover student-card">
-                <div className="match-score">
-                  <Sparkles size={14} style={{ color: 'var(--accent)' }} />
-                  <span>{matchScore}% Match</span>
-                </div>
-                <div className="student-card-top">
-                  <img src={s.avatar} alt={s.name} className="student-card-avatar" />
-                  <div className="student-card-details">
-                    <h3 className="student-card-name" style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                      {s.name} 
-                      {s.verified && (
-                        <CheckCircle size={14} style={{ fill: 'var(--accent-light)', color: 'var(--accent)' }} />
-                      )}
-                    </h3>
-                    <p className="student-card-dept">{s.dept} • {s.year}</p>
+              <GlowCard key={s.id} className="student-card">
+                <div style={{ padding: '24px' }}>
+                  <div className="match-score">
+                    <Sparkles size={14} style={{ color: 'var(--accent)' }} />
+                    <span>{matchScore}% Match</span>
+                  </div>
+                  <div className="student-card-top">
+                    <img src={s.avatar} alt={s.name} className="student-card-avatar" />
+                    <div className="student-card-details">
+                      <h3 className="student-card-name" style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                        {s.name} 
+                        {s.verified && (
+                          <CheckCircle size={14} style={{ fill: 'var(--accent-light)', color: 'var(--accent)' }} />
+                        )}
+                      </h3>
+                      <p className="student-card-dept">{s.dept} • {s.year}</p>
+                    </div>
+                  </div>
+                  <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '12px', flex: 1, display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+                    {s.bio}
+                  </p>
+                  <div className="chips-container" style={{ marginBottom: '16px' }}>
+                    {s.skills.map(sk => (
+                      <span key={sk} className="badge badge-muted">{sk}</span>
+                    ))}
+                  </div>
+                  <div className="student-card-actions">
+                    <button className="btn btn-secondary btn-sm" onClick={() => setActiveStudentId(s.id)}>View Profile</button>
+                    <button className="btn btn-primary btn-sm" onClick={() => onOpenCollabRequest(s.id)}>Collaborate</button>
                   </div>
                 </div>
-                <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '12px', flex: 1, display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
-                  {s.bio}
-                </p>
-                <div className="chips-container" style={{ marginBottom: '16px' }}>
-                  {s.skills.map(sk => (
-                    <span key={sk} className="badge badge-muted">{sk}</span>
-                  ))}
-                </div>
-                <div className="student-card-actions">
-                  <button className="btn btn-secondary btn-sm" onClick={() => setActiveStudentId(s.id)}>View Profile</button>
-                  <button className="btn btn-primary btn-sm" onClick={() => onOpenCollabRequest(s.id)}>Collaborate</button>
-                </div>
-              </div>
+              </GlowCard>
             );
           })
         ) : (

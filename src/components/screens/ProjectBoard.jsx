@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
 import { Search, Plus, User, Calendar, Users, ArrowLeft, GraduationCap, Share, Sparkles } from 'lucide-react';
+import GlowCard from '../visual/GlowCard';
 
 const ProjectBoard = ({ onOpenCreateProject, onOpenCollabRequest }) => {
   const { 
@@ -236,36 +237,38 @@ const ProjectBoard = ({ onOpenCreateProject, onOpenCollabRequest }) => {
             const owner = students.find(s => s.id === p.ownerId) || currentUser;
             const score = calculateAIMatchScore(p.skillsNeeded, currentUser.skills);
             return (
-              <div key={p.id} className="card card-hover project-card">
-                <div className="match-score">
-                  <Sparkles size={14} style={{ color: 'var(--accent)', marginRight: '4px' }} />
-                  <span>{score}% Match</span>
-                </div>
-                <div className="project-card-header">
-                  <div>
-                    <h3 className="project-card-title">{p.title}</h3>
-                    <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '4px' }}>Proposed by {owner.name}</p>
+              <GlowCard key={p.id} className="project-card">
+                <div style={{ padding: '24px' }}>
+                  <div className="match-score">
+                    <Sparkles size={14} style={{ color: 'var(--accent)', marginRight: '4px' }} />
+                    <span>{score}% Match</span>
+                  </div>
+                  <div className="project-card-header">
+                    <div>
+                      <h3 className="project-card-title">{p.title}</h3>
+                      <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '4px' }}>Proposed by {owner.name}</p>
+                    </div>
+                  </div>
+                  <p className="project-card-desc">{p.desc}</p>
+                  
+                  <div className="chips-container" style={{ marginBottom: '20px' }}>
+                    {p.skillsNeeded.map(s => (
+                      <span key={s} className={`badge ${currentUser.skills.includes(s) ? 'badge-teal' : 'badge-muted'}`}>
+                        {s}
+                      </span>
+                    ))}
+                  </div>
+
+                  <div className="project-card-meta">
+                    <div className="meta-item"><Users size={14} /> Team: {p.members.length}/{p.teamSize}</div>
+                    <div className="meta-item"><Calendar size={14} /> {p.category}</div>
+                  </div>
+                  <div className="project-card-actions">
+                    <button className="btn btn-secondary btn-sm" onClick={() => setActiveProjectId(p.id)}>View</button>
+                    <button className="btn btn-primary btn-sm" onClick={() => onOpenCollabRequest(owner.id, p.id)}>Request to Join</button>
                   </div>
                 </div>
-                <p className="project-card-desc">{p.desc}</p>
-                
-                <div className="chips-container" style={{ marginBottom: '20px' }}>
-                  {p.skillsNeeded.map(s => (
-                    <span key={s} className={`badge ${currentUser.skills.includes(s) ? 'badge-teal' : 'badge-muted'}`}>
-                      {s}
-                    </span>
-                  ))}
-                </div>
-
-                <div className="project-card-meta">
-                  <div className="meta-item"><Users size={14} /> Team: {p.members.length}/{p.teamSize}</div>
-                  <div className="meta-item"><Calendar size={14} /> {p.category}</div>
-                </div>
-                <div className="project-card-actions">
-                  <button className="btn btn-secondary btn-sm" onClick={() => setActiveProjectId(p.id)}>View</button>
-                  <button className="btn btn-primary btn-sm" onClick={() => onOpenCollabRequest(owner.id, p.id)}>Request to Join</button>
-                </div>
-              </div>
+              </GlowCard>
             );
           })
         ) : (
