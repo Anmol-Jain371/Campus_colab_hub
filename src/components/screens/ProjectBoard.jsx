@@ -181,6 +181,52 @@ const ProjectBoard = ({ onOpenCreateProject, onOpenCollabRequest }) => {
                 </p>
               </div>
             </div>
+
+            <div className="card">
+              <h3 style={{ fontSize: '1.1rem', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <Sparkles size={16} color="var(--accent)" /> Project Roadmap Timeline
+              </h3>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', position: 'relative', paddingLeft: '8px' }}>
+                {/* Vertical line indicator */}
+                <div style={{ position: 'absolute', top: '8px', bottom: '8px', left: '16px', width: '2px', background: '#e2e8f0', zIndex: 0 }} />
+
+                {/* Milestone 1 */}
+                <div style={{ display: 'flex', gap: '12px', alignItems: 'flex-start', position: 'relative', zIndex: 1 }}>
+                  <div style={{ width: '18px', height: '18px', borderRadius: '50%', background: 'var(--accent)', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.65rem', fontWeight: 800 }}>✓</div>
+                  <div>
+                    <h4 style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-primary)' }}>Phase 1: Concept & Wireframe</h4>
+                    <p style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>Completed on July 10th</p>
+                  </div>
+                </div>
+
+                {/* Milestone 2 */}
+                <div style={{ display: 'flex', gap: '12px', alignItems: 'flex-start', position: 'relative', zIndex: 1 }}>
+                  <div style={{ width: '18px', height: '18px', borderRadius: '50%', background: 'var(--accent)', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.65rem', fontWeight: 800 }}>✓</div>
+                  <div>
+                    <h4 style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-primary)' }}>Phase 2: Database Schema & API Setup</h4>
+                    <p style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>Completed on July 12th</p>
+                  </div>
+                </div>
+
+                {/* Milestone 3 */}
+                <div style={{ display: 'flex', gap: '12px', alignItems: 'flex-start', position: 'relative', zIndex: 1 }}>
+                  <div style={{ width: '18px', height: '18px', borderRadius: '50%', background: '#ccfbf1', border: '2px solid var(--accent)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.65rem', color: 'var(--accent)', fontWeight: 800 }}>⚡</div>
+                  <div>
+                    <h4 style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-primary)' }}>Phase 3: Frontend Integration & Onboarding</h4>
+                    <p style={{ fontSize: '0.7rem', color: 'var(--accent)', fontWeight: 600 }}>Active Development Phase</p>
+                  </div>
+                </div>
+
+                {/* Milestone 4 */}
+                <div style={{ display: 'flex', gap: '12px', alignItems: 'flex-start', position: 'relative', zIndex: 1 }}>
+                  <div style={{ width: '18px', height: '18px', borderRadius: '50%', background: '#e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.65rem', color: '#64748b', fontWeight: 800 }}>📅</div>
+                  <div>
+                    <h4 style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-muted)' }}>Phase 4: Platform Launch & Pitch Deck</h4>
+                    <p style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>Target: July 16th</p>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </section>

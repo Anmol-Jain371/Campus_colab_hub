@@ -26,10 +26,10 @@ app.get('/api/students', async (req, res) => {
   }
 });
 
-app.post('/api/students/login', async (req, res) => {
-  const { id } = req.body;
+app.post('/api/auth/login', async (req, res) => {
+  const { email, password } = req.body;
   try {
-    const s = await getQuery("SELECT * FROM students WHERE id = ?", [id]);
+    const s = await getQuery("SELECT * FROM students WHERE email = ? AND password = ?", [email, password]);
     if (s) {
       res.json({
         ...s,
@@ -38,24 +38,34 @@ app.post('/api/students/login', async (req, res) => {
         verified: !!s.verified
       });
     } else {
-      res.status(404).json({ error: 'Student not found' });
+      res.status(401).json({ error: 'Invalid email or password' });
     }
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
 
-app.post('/api/students', async (req, res) => {
-  const { id, name, dept, year, skills, bio, avatar } = req.body;
+app.post('/api/auth/register', async (req, res) => {
+  const { name, email, password, dept, year, skills, bio, avatar, userType } = req.body;
+  const id = 'custom_user_' + Date.now();
   try {
+    const existing = await getQuery("SELECT id FROM students WHERE email = ?", [email]);
+    if (existing) {
+      return res.status(400).json({ error: 'Email address already in use.' });
+    }
+
     await runQuery(`
-      INSERT INTO students (id, name, dept, year, skills, bio, avatar, portfolio, github, linkedin, availability, interest, trustScore, endorsements, connections, verified)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 90, 0, 0, 1)
+      INSERT INTO students (id, name, email, password, dept, year, skills, bio, avatar, portfolio, github, linkedin, availability, interest, trustScore, endorsements, connections, verified, userType)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 90, 0, 0, 1, ?)
     `, [
-      id, name, dept, year, JSON.stringify(skills), bio, 
+      id, name, email, password, dept, year, JSON.stringify(skills), bio, 
       avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=150',
-      JSON.stringify([]), 'https://github.com', 'https://linkedin.com', 'Open for projects', 'Hackathons, Startups'
+      JSON.stringify([]), 'https://github.com', 'https://linkedin.com', 
+      userType === 'faculty' ? 'Available to Mentor' : 'Open for projects', 
+      userType === 'faculty' ? 'Research, Mentorship' : 'Hackathons, Startups',
+      userType || 'student'
     ]);
+    
     const s = await getQuery("SELECT * FROM students WHERE id = ?", [id]);
     res.status(201).json({
       ...s,
@@ -63,6 +73,49 @@ app.post('/api/students', async (req, res) => {
       portfolio: JSON.parse(s.portfolio || '[]'),
       verified: !!s.verified
     });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.put('/api/students/:id', async (req, res) => {
+  const studentId = req.params.id;
+  const { name, dept, year, bio, skills, avatar } = req.body;
+  try {
+    await runQuery(`
+      UPDATE students 
+      SET name = ?, dept = ?, year = ?, bio = ?, skills = ?, avatar = ?
+      WHERE id = ?
+    `, [name, dept, year, bio, JSON.stringify(skills), avatar, studentId]);
+
+    const updated = await getQuery("SELECT * FROM students WHERE id = ?", [studentId]);
+    res.json({
+      ...updated,
+      skills: JSON.parse(updated.skills),
+      portfolio: JSON.parse(updated.portfolio || '[]'),
+      verified: !!updated.verified
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/api/students/:id/endorse', async (req, res) => {
+  const studentId = req.params.id;
+  try {
+    const s = await getQuery("SELECT endorsements, trustScore FROM students WHERE id = ?", [studentId]);
+    if (s) {
+      const newEndorsements = (s.endorsements || 0) + 1;
+      const newTrustScore = Math.min(100, (s.trustScore || 90) + 2);
+      await runQuery(`
+        UPDATE students 
+        SET endorsements = ?, trustScore = ?
+        WHERE id = ?
+      `, [newEndorsements, newTrustScore, studentId]);
+      res.json({ success: true, endorsements: newEndorsements, trustScore: newTrustScore });
+    } else {
+      res.status(404).json({ error: 'Student not found' });
+    }
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -188,29 +241,6 @@ app.post('/api/messages/send', async (req, res) => {
       VALUES (?, ?, ?, ?, 'Just now')
     `, [chatId, senderId, senderName, text]);
 
-    // Live AI reply simulation: insert automated response inside DB after 1.5 seconds
-    setTimeout(async () => {
-      try {
-        let replyText = "Sounds good! Let's schedule a call tomorrow afternoon to discuss details.";
-        let replyName = senderName;
-
-        if (chatId === 'p1') {
-          replyText = `Great! I've updated the repository. Let's sync with our Faculty Mentor Dr. Amit later this week.`;
-          replyName = 'Aarav Mehta';
-        } else {
-          const destStudent = await getQuery("SELECT name FROM students WHERE id = ?", [chatId]);
-          if (destStudent) replyName = destStudent.name;
-        }
-
-        await runQuery(`
-          INSERT INTO chat_messages (chatId, senderId, senderName, text, time)
-          VALUES (?, 'bot_reply', ?, ?, 'Just now')
-        `, [chatId, replyName, replyText]);
-      } catch (e) {
-        console.error('Error simulating bot reply:', e);
-      }
-    }, 1500);
-
     res.status(201).json({ success: true });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -238,21 +268,65 @@ app.post('/api/notifications/read-all', async (req, res) => {
   }
 });
 
+app.post('/api/notifications', async (req, res) => {
+  const { title, desc, type, projectId, studentId, role } = req.body;
+  const id = 'notif_' + Date.now();
+  try {
+    await runQuery(`
+      INSERT INTO notifications (id, title, desc, time, type, read, projectId, studentId, role)
+      VALUES (?, ?, ?, 'Just now', ?, 0, ?, ?, ?)
+    `, [id, title, desc, type, projectId, studentId, role]);
+    res.status(201).json({ success: true, id });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 app.post('/api/notifications/:id/accept', async (req, res) => {
   const notiId = req.params.id;
-  const { studentId } = req.body;
   try {
-    // Add user as UI/UX Consultant member to IoT Grid project (id p1)
+    const noti = await getQuery("SELECT * FROM notifications WHERE id = ?", [notiId]);
+    if (!noti) {
+      return res.status(404).json({ error: 'Notification not found' });
+    }
+
+    const projectId = noti.projectId || 'p1';
+    const studentId = noti.studentId || 's2';
+    const role = noti.role || 'UI/UX Consultant';
+
+    // Add to project members
     await runQuery(`
       INSERT INTO project_members (projectId, studentId, role)
-      VALUES ('p1', ?, 'UI/UX Consultant')
-    `, [studentId]);
+      VALUES (?, ?, ?)
+    `, [projectId, studentId, role]);
+
+    // Fetch details for system message
+    const student = await getQuery("SELECT name FROM students WHERE id = ?", [studentId]);
+    const project = await getQuery("SELECT title, ownerId FROM projects WHERE id = ?", [projectId]);
+
+    const studentName = student ? student.name : 'A student';
+    const projectTitle = project ? project.title : 'Project';
+    const ownerId = project ? project.ownerId : 's1';
+
+    const systemText = `System Moderator: Connection established! ${studentName} has joined "${projectTitle}" as a ${role}. You can now start collaborating and schedule sync calls!`;
+
+    // Auto-create private chat for both recipient lists
+    await runQuery(`
+      INSERT INTO chat_messages (chatId, senderId, senderName, text, time)
+      VALUES (?, 'system', 'System Moderator', ?, 'Just now')
+    `, [studentId, systemText]);
+
+    await runQuery(`
+      INSERT INTO chat_messages (chatId, senderId, senderName, text, time)
+      VALUES (?, 'system', 'System Moderator', ?, 'Just now')
+    `, [ownerId, systemText]);
 
     // Delete notification
     await runQuery("DELETE FROM notifications WHERE id = ?", [notiId]);
 
     // Increment user connections
     await runQuery("UPDATE students SET connections = connections + 1 WHERE id = ?", [studentId]);
+    await runQuery("UPDATE students SET connections = connections + 1 WHERE id = ?", [ownerId]);
 
     res.json({ success: true });
   } catch (err) {

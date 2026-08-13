@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
-import { Search, CheckCircle, ShieldCheck, Github, Linkedin, MessageSquare, UserPlus, ArrowLeft } from 'lucide-react';
+import { Search, CheckCircle, ShieldCheck, Github, Linkedin, MessageSquare, UserPlus, ArrowLeft, Sparkles } from 'lucide-react';
 import GlowCard from '../visual/GlowCard';
+import SkillRadarChart from '../visual/SkillRadarChart';
 
 const DiscoverStudents = ({ onOpenCollabRequest }) => {
   const { 
@@ -12,6 +13,7 @@ const DiscoverStudents = ({ onOpenCollabRequest }) => {
     setActiveStudentId, 
     openDirectChat, 
     calculateAIMatchScore,
+    endorseStudent,
     showToast 
   } = useApp();
 
@@ -87,9 +89,16 @@ const DiscoverStudents = ({ onOpenCollabRequest }) => {
               <span className="trust-lbl">AI Trust Score</span>
             </div>
             
-            <div style={{ alignSelf: 'center' }}>
+            <div style={{ alignSelf: 'center', display: 'flex', gap: '8px' }}>
               <button className="btn btn-primary" onClick={() => onOpenCollabRequest(s.id)}>
                 <UserPlus size={18} style={{ marginRight: '6px' }} /> Send Collab Request
+              </button>
+              <button 
+                className="btn btn-secondary" 
+                onClick={() => endorseStudent(s.id)}
+                style={{ border: '1px solid var(--accent)', color: 'var(--accent)', fontWeight: 700 }}
+              >
+                ★ Endorse ({s.endorsements || 0})
               </button>
             </div>
           </div>
@@ -177,6 +186,13 @@ const DiscoverStudents = ({ onOpenCollabRequest }) => {
                 </div>
               </div>
             </div>
+
+            <div className="card">
+              <h3 style={{ fontSize: '1.1rem', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <Sparkles size={16} color="var(--accent)" /> DNA Skill Chart
+              </h3>
+              <SkillRadarChart projectSkills={currentUser.skills} studentSkills={s.skills} />
+            </div>
           </div>
         </div>
       </section>
@@ -215,6 +231,7 @@ const DiscoverStudents = ({ onOpenCollabRequest }) => {
           >
             <option value="All">All Departments</option>
             <option value="Computer Science">Computer Science</option>
+            <option value="MCA">MCA</option>
             <option value="Electrical Engineering">Electrical Eng</option>
             <option value="Mechanical Engineering">Mechanical Eng</option>
             <option value="Design & Fine Arts">Design & UI/UX</option>
@@ -286,10 +303,5 @@ const DiscoverStudents = ({ onOpenCollabRequest }) => {
     </section>
   );
 };
-
-// Help helper icon component since Sparkles was referenced
-const Sparkles = ({ size, style }) => (
-  <svg style={style} xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-sparkles"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/></svg>
-);
 
 export default DiscoverStudents;

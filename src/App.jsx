@@ -5,7 +5,8 @@ import BottomNav from './components/BottomNav';
 
 // Screens
 import Splash from './components/screens/Splash';
-import Signup from './components/screens/Signup';
+import Login from './components/screens/Login';
+import Register from './components/screens/Register';
 import HomeDashboard from './components/screens/HomeDashboard';
 import DiscoverStudents from './components/screens/DiscoverStudents';
 import ProjectBoard from './components/screens/ProjectBoard';
@@ -17,12 +18,16 @@ import UserDashboard from './components/screens/UserDashboard';
 // Modals
 import CreateProjectModal from './components/modals/CreateProjectModal';
 import CollabRequestModal from './components/modals/CollabRequestModal';
+import EditProfileModal from './components/modals/EditProfileModal';
+import WelcomeOnboardingModal from './components/modals/WelcomeOnboardingModal';
+import WorkspaceLoader from './components/visual/WorkspaceLoader';
 
 function App() {
-  const { currentUser, activeScreen } = useApp();
+  const { currentUser, activeScreen, isInitializing, showOnboarding, setShowOnboarding } = useApp();
   
   // Modal states
   const [isCreateProjectOpen, setIsCreateProjectOpen] = useState(false);
+  const [isEditProfileOpen, setIsEditProfileOpen] = useState(false);
   const [collabModalData, setCollabModalData] = useState({ isOpen: false, studentId: '', projectId: '' });
 
   const handleOpenCollabRequest = (studentId, projectId = '') => {
@@ -37,7 +42,10 @@ function App() {
   if (!currentUser) {
     return (
       <div className="auth-layout">
-        {activeScreen === 'splash' ? <Splash /> : <Signup />}
+        {isInitializing && <WorkspaceLoader />}
+        {activeScreen === 'landing' && <Splash />}
+        {activeScreen === 'login' && <Login />}
+        {activeScreen === 'register' && <Register />}
       </div>
     );
   }
@@ -73,6 +81,7 @@ function App() {
         {activeScreen === 'user-dashboard' && (
           <UserDashboard 
             onOpenCreateProject={() => setIsCreateProjectOpen(true)} 
+            onOpenEditProfile={() => setIsEditProfileOpen(true)}
           />
         )}
       </main>
@@ -81,6 +90,7 @@ function App() {
       <BottomNav />
 
       {/* Reusable Overlay Modals */}
+      {isInitializing && <WorkspaceLoader />}
       <CreateProjectModal 
         isOpen={isCreateProjectOpen} 
         onClose={() => setIsCreateProjectOpen(false)} 
@@ -90,6 +100,15 @@ function App() {
         onClose={handleCloseCollabRequest}
         studentId={collabModalData.studentId}
         projectId={collabModalData.projectId}
+      />
+      <WelcomeOnboardingModal 
+        isOpen={showOnboarding} 
+        onClose={() => setShowOnboarding(false)} 
+        userName={currentUser?.name} 
+      />
+      <EditProfileModal 
+        isOpen={isEditProfileOpen} 
+        onClose={() => setIsEditProfileOpen(false)} 
       />
     </div>
   );

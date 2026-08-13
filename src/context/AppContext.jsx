@@ -8,7 +8,13 @@ const API_URL = 'http://localhost:3001/api';
 
 export const AppProvider = ({ children }) => {
   // Navigation State
-  const [activeScreen, setActiveScreenState] = useState('splash');
+  const [activeScreen, setActiveScreenState] = useState(() => {
+    try {
+      return localStorage.getItem('campushub_currentUser') ? 'home' : 'landing';
+    } catch {
+      return 'landing';
+    }
+  });
   const [historyStack, setHistoryStack] = useState([]);
   
   // Database States loaded from API Backend
@@ -27,6 +33,8 @@ export const AppProvider = ({ children }) => {
   const [notifications, setNotifications] = useState([]);
   const [messages, setMessages] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [isInitializing, setIsInitializing] = useState(false);
+  const [showOnboarding, setShowOnboarding] = useState(false);
   
   // Active states
   const [activeChatId, setActiveChatId] = useState(null);
@@ -110,8 +118,16 @@ export const AppProvider = ({ children }) => {
   // Helper match score
   const calculateAIMatchScore = (requiredSkills, studentSkills) => {
     if (!requiredSkills || !studentSkills || requiredSkills.length === 0) return 0;
-    const intersection = requiredSkills.filter(s => studentSkills.includes(s));
-    const score = Math.round((intersection.length / requiredSkills.length) * 100);
+    let matchedCount = 0;
+    requiredSkills.forEach(req => {
+      const reqLower = req.toLowerCase().trim();
+      const hasMatch = studentSkills.some(stud => {
+        const studLower = stud.toLowerCase().trim();
+        return studLower.includes(reqLower) || reqLower.includes(studLower);
+      });
+      if (hasMatch) matchedCount++;
+    });
+    const score = Math.round((matchedCount / requiredSkills.length) * 100);
     return score === 0 ? 15 : score;
   };
 
@@ -138,55 +154,113 @@ export const AppProvider = ({ children }) => {
   };
 
   // Auth Operations
-  const loginDemoUser = async () => {
+  const loginUser = async (email, password) => {
     try {
-      const res = await fetch(`${API_URL}/students/login`, {
+      const res = await fetch(`${API_URL}/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id: 's2' }) // Log in as Riya Sen demo student
+        body: JSON.stringify({ email, password })
       });
       if (res.ok) {
-        const demoUser = await res.json();
-        setCurrentUser(demoUser);
-        showToast(`Logged in as Demo Student ${demoUser.name}!`, 'success');
-        navigateTo('home');
+        const user = await res.json();
+        setIsInitializing(true);
+        setCurrentUser(user);
+        await loadDatabaseState();
+        setTimeout(() => {
+          setIsInitializing(false);
+          showToast(`Welcome back, ${user.name}!`, 'success');
+          navigateTo('home');
+        }, 1800);
+        return { success: true };
       } else {
-        showToast("Error retrieving demo student profile.", "error");
+        const data = await res.json();
+        showToast(data.error || "Invalid credentials", "error");
+        return { success: false, error: data.error };
       }
     } catch (e) {
       showToast("API server offline.", "error");
+      return { success: false, error: "Server offline" };
     }
   };
 
   const logoutUser = () => {
     setCurrentUser(null);
-    navigateTo('splash');
+    navigateTo('landing');
     showToast('Logged out of Workspace.', 'info');
   };
 
-  const sendMockOTP = (email) => {
-    showToast(`Demo OTP Code "123456" sent to ${email}`, 'info');
-  };
-
-  const completeSignup = async (name, dept, year, bio, skills, avatar) => {
-    const id = 'custom_user_' + Date.now();
+  const registerUser = async (name, email, password, dept, year, bio, skills, avatar, userType = 'student') => {
     try {
-      const res = await fetch(`${API_URL}/students`, {
+      const res = await fetch(`${API_URL}/auth/register`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id, name, dept, year, bio, skills, avatar })
+        body: JSON.stringify({ name, email, password, dept, year, bio, skills, avatar, userType })
       });
       if (res.ok) {
         const user = await res.json();
+        setIsInitializing(true);
         setCurrentUser(user);
         await loadDatabaseState();
-        showToast('Student Profile Created!', 'success');
-        navigateTo('home');
+        setTimeout(() => {
+          setIsInitializing(false);
+          setShowOnboarding(userType !== 'faculty'); // Hide student onboarding for faculty
+          showToast(`${userType === 'faculty' ? 'Faculty' : 'Student'} Profile Created Successfully!`, 'success');
+          navigateTo('home');
+        }, 1800);
+        return { success: true };
       } else {
-        showToast("Error creating database user.", "error");
+        const data = await res.json();
+        showToast(data.error || "Registration failed", "error");
+        return { success: false, error: data.error };
       }
     } catch (e) {
       showToast("API server offline.", "error");
+      return { success: false, error: "Server offline" };
+    }
+  };
+
+  const updateUserProfile = async (name, dept, year, bio, skills, avatar) => {
+    if (!currentUser) return false;
+    try {
+      const res = await fetch(`${API_URL}/students/${currentUser.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, dept, year, bio, skills, avatar })
+      });
+      if (res.ok) {
+        const updatedUser = await res.json();
+        setCurrentUser(updatedUser);
+        localStorage.setItem('campushub_currentUser', JSON.stringify(updatedUser));
+        await loadDatabaseState();
+        showToast('Student profile updated successfully!', 'success');
+        return true;
+      } else {
+        showToast('Error updating profile details.', 'error');
+        return false;
+      }
+    } catch (e) {
+      showToast('API server offline.', 'error');
+      return false;
+    }
+  };
+
+  const endorseStudent = async (studentId) => {
+    try {
+      const res = await fetch(`${API_URL}/students/${studentId}/endorse`, {
+        method: 'POST'
+      });
+      if (res.ok) {
+        const data = await res.json();
+        await loadDatabaseState();
+        showToast('Student skills endorsed successfully! Trust score updated.', 'success');
+        return data;
+      } else {
+        showToast('Error sending endorsement.', 'error');
+        return null;
+      }
+    } catch (e) {
+      showToast('API server offline.', 'error');
+      return null;
     }
   };
 
@@ -218,15 +292,36 @@ export const AppProvider = ({ children }) => {
     }
   };
 
-  const joinProjectRequest = (projectId, ownerId, role, intro, timeline, availability) => {
+  const joinProjectRequest = async (projectId, ownerId, role, intro, timeline, availability) => {
     if (!currentUser) return;
     const recipient = students.find(s => s.id === ownerId);
-    showToast(`Collab request sent to ${recipient ? recipient.name : 'Project Owner'}!`, 'success');
-    addTimelineEvent(
-      'Sent request',
-      `You invited ${recipient ? recipient.name : 'Owner'} to join as "${role}"`,
-      'Just now'
-    );
+    try {
+      const res = await fetch(`${API_URL}/notifications`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: 'Collaboration Request',
+          desc: `${currentUser.name} requested to join your project as a ${role}.`,
+          type: 'invitation',
+          projectId,
+          studentId: currentUser.id,
+          role
+        })
+      });
+      if (res.ok) {
+        await loadDatabaseState();
+        showToast(`Collab request sent to ${recipient ? recipient.name : 'Project Owner'}!`, 'success');
+        addTimelineEvent(
+          'Sent request',
+          `You requested to join as "${role}"`,
+          'Just now'
+        );
+      } else {
+        showToast("Error sending collaboration request.", "error");
+      }
+    } catch (e) {
+      showToast("API server offline.", "error");
+    }
   };
 
   const addProjectComment = async (projectId, text) => {
@@ -289,11 +384,6 @@ export const AppProvider = ({ children }) => {
       if (res.ok) {
         // Optimistic refresh
         await loadDatabaseState();
-
-        // Refetch chat after 1.8s to fetch the simulated live backend reply
-        setTimeout(async () => {
-          await loadDatabaseState();
-        }, 1800);
       }
     } catch (e) {
       showToast("API server offline.", "error");
@@ -392,6 +482,9 @@ export const AppProvider = ({ children }) => {
       timelineEvents,
       toasts,
       loading,
+      isInitializing,
+      showOnboarding,
+      setShowOnboarding,
       
       setActiveProjectId,
       setActiveStudentId,
@@ -401,10 +494,11 @@ export const AppProvider = ({ children }) => {
       
       navigateTo,
       navigateBack,
-      loginDemoUser,
+      loginUser,
       logoutUser,
-      sendMockOTP,
-      completeSignup,
+      registerUser,
+      updateUserProfile,
+      endorseStudent,
       addProject,
       joinProjectRequest,
       addProjectComment,

@@ -15,6 +15,9 @@ const MessagesWorkspace = () => {
   } = useApp();
 
   const [typedMessage, setTypedMessage] = useState('');
+  const [showScheduleForm, setShowScheduleForm] = useState(false);
+  const [meetingDate, setMeetingDate] = useState('2026-07-15');
+  const [meetingTime, setMeetingTime] = useState('2:00 PM');
   const messagesEndRef = useRef(null);
 
   const activeChat = messages.find(c => c.chatId === activeChatId);
@@ -160,13 +163,91 @@ const MessagesWorkspace = () => {
                 activeChat.history.map((m, idx) => {
                   const isSent = m.senderId === currentUser.id;
                   return (
-                    <div key={idx} className={`msg-wrapper ${isSent ? 'sent' : 'received'}`}>
-                      <div className="msg-bubble">
+                    <div key={idx} className={`msg-wrapper ${isSent ? 'sent' : 'received'} ${m.senderId === 'system' ? 'system-msg-row' : ''}`} style={m.senderId === 'system' ? { display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%', margin: '16px 0' } : {}}>
+                      <div className="msg-bubble" style={m.senderId === 'system' ? { background: '#f1f5f9', border: '1px solid var(--border)', color: 'var(--text-primary)', width: '100%', maxWidth: '520px', textAlign: 'left', borderRadius: '12px' } : {}}>
                         <div style={{ fontSize: '0.75rem', fontWeight: 700, marginBottom: '2px', color: isSent ? 'rgba(255,255,255,0.9)' : 'var(--accent)' }}>
                           {isSent ? 'You' : m.senderName}
                         </div>
                         <p dangerouslySetInnerHTML={{ __html: m.text }}></p>
                         <div className="msg-meta">{m.time}</div>
+
+                        {/* Interactive Propose Sync Call Card for System Connections */}
+                        {m.senderId === 'system' && (
+                          <div style={{
+                            marginTop: '12px',
+                            background: 'white',
+                            border: '1px solid var(--border)',
+                            borderRadius: '8px',
+                            padding: '12px',
+                            boxShadow: 'var(--shadow-sm)',
+                            width: '100%'
+                          }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
+                              <span style={{ fontSize: '1.1rem' }}>📅</span>
+                              <span style={{ fontSize: '0.8rem', fontWeight: 800, color: 'var(--text-primary)' }}>Schedule Kick-off Sync</span>
+                            </div>
+                            <p style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginBottom: '12px', lineHeight: 1.4 }}>
+                              Propose a calendar meeting date and time to establish synchronization milestones.
+                            </p>
+                            
+                            {!showScheduleForm ? (
+                              <button 
+                                type="button"
+                                className="btn btn-outline btn-sm" 
+                                style={{ width: '100%', fontSize: '0.75rem', fontWeight: 700 }}
+                                onClick={() => setShowScheduleForm(true)}
+                              >
+                                Propose Meeting Time
+                              </button>
+                            ) : (
+                              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                                <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: '8px' }}>
+                                  <input 
+                                    type="date" 
+                                    className="form-control" 
+                                    value={meetingDate} 
+                                    onChange={(e) => setMeetingDate(e.target.value)} 
+                                    style={{ padding: '6px', fontSize: '0.75rem' }} 
+                                  />
+                                  <select 
+                                    className="form-control" 
+                                    value={meetingTime} 
+                                    onChange={(e) => setMeetingTime(e.target.value)} 
+                                    style={{ padding: '6px', fontSize: '0.75rem' }}
+                                  >
+                                    <option value="10:00 AM">10:00 AM</option>
+                                    <option value="11:30 AM">11:30 AM</option>
+                                    <option value="2:00 PM">2:00 PM</option>
+                                    <option value="4:00 PM">4:00 PM</option>
+                                    <option value="6:30 PM">6:30 PM</option>
+                                  </select>
+                                </div>
+                                <div style={{ display: 'flex', gap: '6px' }}>
+                                  <button 
+                                    type="button" 
+                                    className="btn btn-secondary btn-sm" 
+                                    style={{ flex: 1, fontSize: '0.75rem', padding: '6px' }}
+                                    onClick={() => setShowScheduleForm(false)}
+                                  >
+                                    Cancel
+                                  </button>
+                                  <button 
+                                    type="button" 
+                                    className="btn btn-primary btn-sm" 
+                                    style={{ flex: 1, fontSize: '0.75rem', padding: '6px', background: 'var(--accent)', color: 'white', border: 'none' }}
+                                    onClick={() => {
+                                      sendChatMessage(`📅 <b>Collaboration Sync Scheduled</b>: ${meetingDate} at ${meetingTime}. <br/><b>Link</b>: <a href="https://meet.google.com/abc-defg-hij" target="_blank" style="color:var(--accent); text-decoration:underline;">meet.google.com/abc-defg-hij</a>`);
+                                      setShowScheduleForm(false);
+                                      showToast('Sync proposal sent in connection chat!', 'success');
+                                    }}
+                                  >
+                                    Send Request
+                                  </button>
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        )}
                       </div>
                     </div>
                   );

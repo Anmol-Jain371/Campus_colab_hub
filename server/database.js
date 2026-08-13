@@ -46,11 +46,13 @@ export const getQuery = (sql, params = []) => {
 
 async function initializeSchema() {
   try {
-    // Create Students Table
+    // Create Students Table with email and password columns
     await runQuery(`
       CREATE TABLE IF NOT EXISTS students (
         id TEXT PRIMARY KEY,
         name TEXT NOT NULL,
+        email TEXT UNIQUE NOT NULL,
+        password TEXT NOT NULL,
         dept TEXT NOT NULL,
         year TEXT NOT NULL,
         skills TEXT NOT NULL,
@@ -64,7 +66,8 @@ async function initializeSchema() {
         trustScore INTEGER DEFAULT 90,
         endorsements INTEGER DEFAULT 0,
         connections INTEGER DEFAULT 0,
-        verified INTEGER DEFAULT 1
+        verified INTEGER DEFAULT 1,
+        userType TEXT DEFAULT 'student'
       )
     `);
 
@@ -124,9 +127,17 @@ async function initializeSchema() {
         desc TEXT NOT NULL,
         time TEXT NOT NULL,
         type TEXT NOT NULL,
-        read INTEGER DEFAULT 0
+        read INTEGER DEFAULT 0,
+        projectId TEXT,
+        studentId TEXT,
+        role TEXT
       )
     `);
+
+    try { await runQuery("ALTER TABLE notifications ADD COLUMN projectId TEXT"); } catch (e) {}
+    try { await runQuery("ALTER TABLE notifications ADD COLUMN studentId TEXT"); } catch (e) {}
+    try { await runQuery("ALTER TABLE notifications ADD COLUMN role TEXT"); } catch (e) {}
+    try { await runQuery("ALTER TABLE students ADD COLUMN userType TEXT DEFAULT 'student'"); } catch (e) {}
 
     // Create Events Table
     await runQuery(`
@@ -161,6 +172,8 @@ async function seedDatabase() {
     {
       id: 's1',
       name: 'Aarav Mehta',
+      email: 'aarav@university.edu',
+      password: 'password123',
       dept: 'Computer Science',
       year: '4th Year',
       skills: JSON.stringify(['Python', 'Machine Learning', 'Cloud', 'Data Science']),
@@ -182,6 +195,8 @@ async function seedDatabase() {
     {
       id: 's2',
       name: 'Riya Sen',
+      email: 'riya@university.edu',
+      password: 'password123',
       dept: 'Design & Fine Arts',
       year: '3rd Year',
       skills: JSON.stringify(['UI/UX', 'Figma', 'React', 'Content Writing']),
@@ -203,6 +218,8 @@ async function seedDatabase() {
     {
       id: 's3',
       name: 'Karan Malhotra',
+      email: 'karan@university.edu',
+      password: 'password123',
       dept: 'Business School',
       year: 'Postgraduate',
       skills: JSON.stringify(['Marketing', 'Finance', 'Content Writing']),
@@ -223,6 +240,8 @@ async function seedDatabase() {
     {
       id: 's4',
       name: 'Neha Roy',
+      email: 'neha@university.edu',
+      password: 'password123',
       dept: 'Electrical Engineering',
       year: '4th Year',
       skills: JSON.stringify(['IoT', 'Cloud', 'Java', 'Python']),
@@ -244,6 +263,8 @@ async function seedDatabase() {
     {
       id: 's5',
       name: 'Rahul Gupta',
+      email: 'rahul@university.edu',
+      password: 'password123',
       dept: 'Computer Science',
       year: '2nd Year',
       skills: JSON.stringify(['React', 'Flutter', 'Figma', 'UI/UX']),
@@ -259,15 +280,37 @@ async function seedDatabase() {
       trustScore: 89,
       endorsements: 6,
       connections: 4,
-      verified: 0
+      verified: 0,
+      userType: 'student'
+    },
+    {
+      id: 'f1',
+      name: 'Dr. Amit Sen',
+      email: 'amit@university.edu',
+      password: 'password123',
+      dept: 'Computer Science',
+      year: 'Professor',
+      skills: JSON.stringify(['AI', 'Machine Learning', 'Research', 'Mentorship']),
+      bio: 'Professor of Computer Science & Artificial Intelligence research group lead. Open to mentoring hackathon and startup prototypes.',
+      avatar: 'https://images.unsplash.com/photo-1537368910025-700350fe46c7?auto=format&fit=crop&q=80&w=150',
+      portfolio: JSON.stringify([]),
+      github: 'https://github.com',
+      linkedin: 'https://linkedin.com',
+      availability: 'Available to Mentor',
+      interest: 'Research, Mentorship',
+      trustScore: 100,
+      endorsements: 45,
+      connections: 18,
+      verified: 1,
+      userType: 'faculty'
     }
   ];
 
   for (const s of students) {
     await runQuery(`
-      INSERT INTO students (id, name, dept, year, skills, bio, avatar, portfolio, github, linkedin, availability, interest, trustScore, endorsements, connections, verified)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `, [s.id, s.name, s.dept, s.year, s.skills, s.bio, s.avatar, s.portfolio, s.github, s.linkedin, s.availability, s.interest, s.trustScore, s.endorsements, s.connections, s.verified]);
+      INSERT INTO students (id, name, email, password, dept, year, skills, bio, avatar, portfolio, github, linkedin, availability, interest, trustScore, endorsements, connections, verified, userType)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `, [s.id, s.name, s.email, s.password, s.dept, s.year, s.skills, s.bio, s.avatar, s.portfolio, s.github, s.linkedin, s.availability, s.interest, s.trustScore, s.endorsements, s.connections, s.verified, s.userType || 'student']);
   }
 
   // 2. Seed Projects
@@ -285,7 +328,7 @@ async function seedDatabase() {
     },
     {
       id: 'p2',
-      title: 'Decentralized Campus Locker Locker',
+      title: 'Decentralized Campus Locker',
       desc: 'A hackathon project building a secure, OTP/Smart card-based locker system for campus libraries and gyms, integrated with a React dashboard app. Seeking React developer and UI designer.',
       skillsNeeded: JSON.stringify(['React', 'Figma', 'UI/UX', 'Cybersecurity']),
       ownerId: 's1',

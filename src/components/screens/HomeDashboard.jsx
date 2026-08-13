@@ -1,6 +1,6 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
-import { Bell, Megaphone, Trophy, PlusCircle, Search, Calendar, CheckCircle } from 'lucide-react';
+import { Bell, Megaphone, Trophy, PlusCircle, Search, Calendar, CheckCircle, Sparkles } from 'lucide-react';
 import GlowCard from '../visual/GlowCard';
 import DecryptedText from '../visual/DecryptedText';
 import Magnet from '../visual/Magnet';
@@ -18,6 +18,37 @@ const HomeDashboard = ({ onOpenCreateProject, onOpenCollabRequest }) => {
     toggleEventRegistration, 
     calculateAIMatchScore 
   } = useApp();
+
+  const [isQuizOpen, setIsQuizOpen] = useState(false);
+  const [quizStep, setQuizStep] = useState(1);
+  const [quizInterest, setQuizInterest] = useState('Hackathon');
+  const [quizRole, setQuizRole] = useState('Developer');
+  const [quizHours, setQuizHours] = useState('10 hrs');
+  const [quizResult, setQuizResult] = useState(null);
+
+  const handleQuizSubmit = () => {
+    let matchingProj = projects.find(p => {
+      if (quizRole === 'Developer') {
+        return p.skillsNeeded.some(s => ['react', 'node', 'python', 'sqlite', 'javascript', 'backend', 'frontend', 'developer'].includes(s.toLowerCase()));
+      }
+      if (quizRole === 'Designer') {
+        return p.skillsNeeded.some(s => ['figma', 'design', 'ui/ux', 'photoshop', 'illustrator', 'consultant'].includes(s.toLowerCase()));
+      }
+      return p.skillsNeeded.some(s => ['business', 'marketing', 'pitching', 'strategy', 'product'].includes(s.toLowerCase()));
+    });
+    
+    if (!matchingProj) {
+      matchingProj = projects[0] || { title: 'Decentralized Campus Locker', id: 'p1', skillsNeeded: ['React', 'SQLite', 'Figma'] };
+    }
+    
+    const baseScore = calculateAIMatchScore(matchingProj.skillsNeeded, currentUser.skills);
+    setQuizResult({
+      project: matchingProj,
+      score: Math.min(99, baseScore + 18),
+      justification: `This project is a strong fit. It aligns with your '${quizInterest}' focus and has an open slot matching your ${quizRole} skills.`
+    });
+    setQuizStep(4);
+  };
 
   if (!currentUser) return null;
 
@@ -99,6 +130,20 @@ const HomeDashboard = ({ onOpenCreateProject, onOpenCollabRequest }) => {
           <div className="quick-action-btn btn-event" onClick={() => navigateTo('events')}>
             <Calendar />
             <span>Browse Events</span>
+          </div>
+        </Magnet>
+        <Magnet>
+          <div 
+            className="quick-action-btn btn-ai-quiz" 
+            onClick={() => {
+              setIsQuizOpen(true);
+              setQuizStep(1);
+              setQuizResult(null);
+            }}
+            style={{ border: '1px solid var(--accent)', background: 'rgba(13, 148, 136, 0.04)' }}
+          >
+            <Sparkles color="var(--accent)" />
+            <span style={{ color: 'var(--accent)', fontWeight: 800 }}>AI Match Quiz</span>
           </div>
         </Magnet>
       </div>
@@ -293,12 +338,201 @@ const HomeDashboard = ({ onOpenCreateProject, onOpenCollabRequest }) => {
         </div>
 
       </div>
+
+      {/* AI Match Finder Questionnaire Modal */}
+      {isQuizOpen && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: 'rgba(15, 23, 42, 0.4)',
+          backdropFilter: 'blur(10px)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 9990,
+          padding: '20px'
+        }}>
+          
+          <div style={{
+            maxWidth: '520px',
+            width: '100%',
+            background: 'white',
+            borderRadius: '16px',
+            border: '1px solid var(--border)',
+            boxShadow: '0 20px 40px rgba(0, 0, 0, 0.1)',
+            padding: '32px',
+            position: 'relative'
+          }}>
+            
+            {/* Close button */}
+            <button 
+              onClick={() => setIsQuizOpen(false)}
+              style={{ position: 'absolute', top: '20px', right: '20px', border: 'none', background: 'none', cursor: 'pointer', color: 'var(--text-secondary)' }}
+            >
+              Close X
+            </button>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
+              <Sparkles size={20} color="var(--accent)" />
+              <h3 style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--text-primary)' }}>AI Match Finder Quiz</h3>
+            </div>
+            
+            {/* Step indicators */}
+            <div style={{ display: 'flex', gap: '6px', marginBottom: '24px' }}>
+              {[1, 2, 3, 4].map(num => (
+                <div 
+                  key={num} 
+                  style={{ 
+                    flex: 1, 
+                    height: '4px', 
+                    background: quizStep >= num ? 'var(--accent)' : '#e2e8f0',
+                    borderRadius: '2px',
+                    transition: 'all 0.3s'
+                  }} 
+                />
+              ))}
+            </div>
+
+            {/* Quiz Step 1: Project Type interest */}
+            {quizStep === 1 && (
+              <div>
+                <h4 style={{ fontSize: '0.95rem', fontWeight: 700, marginBottom: '14px' }}>1. What type of project fits your goals today?</h4>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                  {['Hackathon Opportunity', 'Startup Prototype', 'Academic Research Lab'].map(opt => (
+                    <div 
+                      key={opt}
+                      onClick={() => setQuizInterest(opt)}
+                      style={{
+                        padding: '12px 16px',
+                        border: quizInterest === opt ? '2px solid var(--accent)' : '1px solid var(--border)',
+                        borderRadius: '8px',
+                        background: quizInterest === opt ? 'rgba(13, 148, 136, 0.03)' : 'white',
+                        cursor: 'pointer',
+                        fontWeight: 600,
+                        fontSize: '0.85rem'
+                      }}
+                    >
+                      {opt}
+                    </div>
+                  ))}
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '24px' }}>
+                  <button className="btn btn-primary" onClick={() => setQuizStep(2)}>Next Step &rarr;</button>
+                </div>
+              </div>
+            )}
+
+            {/* Quiz Step 2: Role capacity */}
+            {quizStep === 2 && (
+              <div>
+                <h4 style={{ fontSize: '0.95rem', fontWeight: 700, marginBottom: '14px' }}>2. Select your core contribution quadrant:</h4>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                  {['Developer', 'Designer', 'Business'].map(opt => (
+                    <div 
+                      key={opt}
+                      onClick={() => setQuizRole(opt)}
+                      style={{
+                        padding: '12px 16px',
+                        border: quizRole === opt ? '2px solid var(--accent)' : '1px solid var(--border)',
+                        borderRadius: '8px',
+                        background: quizRole === opt ? 'rgba(13, 148, 136, 0.03)' : 'white',
+                        cursor: 'pointer',
+                        fontWeight: 600,
+                        fontSize: '0.85rem'
+                      }}
+                    >
+                      {opt}
+                    </div>
+                  ))}
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '24px' }}>
+                  <button className="btn btn-secondary" onClick={() => setQuizStep(1)}>&larr; Back</button>
+                  <button className="btn btn-primary" onClick={() => setQuizStep(3)}>Next Step &rarr;</button>
+                </div>
+              </div>
+            )}
+
+            {/* Quiz Step 3: Commitment */}
+            {quizStep === 3 && (
+              <div>
+                <h4 style={{ fontSize: '0.95rem', fontWeight: 700, marginBottom: '14px' }}>3. How much time can you commit weekly?</h4>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                  {['Casual (5 hours)', 'Moderate (10 hours)', 'Hardcore (20+ hours)'].map(opt => (
+                    <div 
+                      key={opt}
+                      onClick={() => setQuizHours(opt)}
+                      style={{
+                        padding: '12px 16px',
+                        border: quizHours === opt ? '2px solid var(--accent)' : '1px solid var(--border)',
+                        borderRadius: '8px',
+                        background: quizHours === opt ? 'rgba(13, 148, 136, 0.03)' : 'white',
+                        cursor: 'pointer',
+                        fontWeight: 600,
+                        fontSize: '0.85rem'
+                      }}
+                    >
+                      {opt}
+                    </div>
+                  ))}
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '24px' }}>
+                  <button className="btn btn-secondary" onClick={() => setQuizStep(2)}>&larr; Back</button>
+                  <button 
+                    className="btn btn-primary" 
+                    onClick={handleQuizSubmit}
+                    style={{ background: 'var(--accent)', color: 'white', border: 'none' }}
+                  >
+                    Calculate Match ⚡
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Quiz Step 4: Results */}
+            {quizStep === 4 && quizResult && (
+              <div>
+                <h4 style={{ fontSize: '0.95rem', fontWeight: 700, color: 'var(--text-secondary)', marginBottom: '4px' }}>AI Recommended Best Match</h4>
+                <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '20px' }}>Based on your compatibility indicators.</p>
+
+                <div style={{ background: '#f8fafc', border: '1px solid var(--border)', borderRadius: '12px', padding: '20px', marginBottom: '24px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+                    <span className="badge badge-teal" style={{ fontSize: '0.7rem' }}>{quizResult.project.category}</span>
+                    <span style={{ color: 'var(--accent)', fontWeight: 800, fontSize: '0.9rem' }}>{quizResult.score}% AI Overlap</span>
+                  </div>
+                  <h3 style={{ fontSize: '1.1rem', fontWeight: 800, color: 'var(--text-primary)', marginBottom: '8px' }}>{quizResult.project.title}</h3>
+                  <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', lineHeight: 1.4, marginBottom: '14px' }}>
+                    {quizResult.project.desc.substring(0, 140)}...
+                  </p>
+                  <div style={{ background: 'white', border: '1px solid var(--accent-light)', borderRadius: '8px', padding: '10px 14px', fontSize: '0.75rem', color: 'var(--accent)', lineHeight: 1.4, fontWeight: 500 }}>
+                    💡 {quizResult.justification}
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', gap: '12px' }}>
+                  <button className="btn btn-secondary" style={{ flex: 1 }} onClick={() => setIsQuizOpen(false)}>Close Wizard</button>
+                  <button 
+                    className="btn btn-primary" 
+                    style={{ flex: 1.3, background: 'var(--accent)', color: 'white', border: 'none' }}
+                    onClick={() => {
+                      setIsQuizOpen(false);
+                      setActiveProjectId(quizResult.project.id);
+                      navigateTo('projects');
+                    }}
+                  >
+                    View Project Details
+                  </button>
+                </div>
+              </div>
+            )}
+
+          </div>
+        </div>
+      )}
     </section>
   );
 };
-
-const Sparkles = ({ size, style }) => (
-  <svg style={style} xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-sparkles"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/></svg>
-);
 
 export default HomeDashboard;

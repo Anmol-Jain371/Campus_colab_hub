@@ -21,9 +21,9 @@ const Sidebar = () => {
 
   return (
     <aside className="sidebar">
-      <div className="brand">
+      <div className="brand-header" onClick={() => navigateTo('home')} style={{ cursor: 'pointer' }}>
         <div className="brand-logo">C</div>
-        <span className="brand-name">Campus Collaboration</span>
+        <span className="brand-name">CampusConnect</span>
       </div>
 
       <nav className="nav-menu">
