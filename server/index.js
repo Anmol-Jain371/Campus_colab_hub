@@ -4,7 +4,14 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { createServer } from 'http';
 import { Server } from 'socket.io';
+import multer from 'multer';
+import fs from 'fs';
+import { fileURLToPath } from 'url';
+import { dirname, join } from 'path';
 import { runQuery, allQuery, getQuery } from './database.js';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 const app = express();
 const PORT = 3001;
@@ -20,6 +27,32 @@ const io = new Server(server, {
 
 app.use(cors());
 app.use(express.json());
+app.use('/uploads', express.static(join(__dirname, 'uploads')));
+
+// Configure Multer storage
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    const dir = join(__dirname, 'uploads');
+    if (!fs.existsSync(dir)){
+      fs.mkdirSync(dir, { recursive: true });
+    }
+    cb(null, dir);
+  },
+  filename: (req, file, cb) => {
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    cb(null, uniqueSuffix + '-' + file.originalname.replace(/\s+/g, '_'));
+  }
+});
+const upload = multer({ storage });
+
+// File Upload endpoint
+app.post('/api/upload', upload.single('file'), (req, res) => {
+  if (!req.file) {
+    return res.status(400).json({ error: 'No file uploaded.' });
+  }
+  const fileUrl = `http://localhost:3001/uploads/${req.file.filename}`;
+  res.json({ url: fileUrl });
+});
 
 // Set up Socket.io events
 io.on('connection', (socket) => {
@@ -410,6 +443,12 @@ app.post('/api/notifications', authenticateToken, async (req, res) => {
       INSERT INTO notifications (id, title, desc, time, type, read, projectId, studentId, role)
       VALUES (?, ?, ?, 'Just now', ?, 0, ?, ?, ?)
     `, [id, title, desc, type, projectId, studentId, role]);
+
+    const newNotif = {
+      id, title, desc, time: 'Just now', type, read: 0, projectId, studentId, role
+    };
+    io.emit('newNotification', newNotif);
+
     res.status(201).json({ success: true, id });
   } catch (err) {
     res.status(500).json({ error: err.message });

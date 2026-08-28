@@ -44,6 +44,7 @@ export const AppProvider = ({ children }) => {
   const [events, setEvents] = useState([]);
   const [notifications, setNotifications] = useState([]);
   const [messages, setMessages] = useState([]);
+  const [unreadNotificationsCount, setUnreadNotificationsCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [isInitializing, setIsInitializing] = useState(false);
   const [showOnboarding, setShowOnboarding] = useState(false);
@@ -144,6 +145,13 @@ export const AppProvider = ({ children }) => {
           }
           return chat;
         }));
+      });
+
+      // Listen for live notifications
+      socketRef.current.on('newNotification', (noti) => {
+        setNotifications(prev => [noti, ...prev]);
+        setUnreadNotificationsCount(prev => prev + 1);
+        showToast(`New Notification: ${noti.title}`, 'info');
       });
 
       return () => {
@@ -517,9 +525,31 @@ export const AppProvider = ({ children }) => {
       const res = await authFetch(`${API_URL}/notifications/read-all`, { method: 'POST' });
       if (res.ok) {
         await loadDatabaseState();
+        setUnreadNotificationsCount(0);
       }
     } catch (e) {
       showToast("API server offline.", "error");
+    }
+  };
+
+  const uploadFile = async (file) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    try {
+      const res = await fetch(`${API_URL.replace('/api', '')}/api/upload`, {
+        method: 'POST',
+        body: formData
+      });
+      if (res.ok) {
+        const data = await res.json();
+        return data.url;
+      } else {
+        showToast("File upload failed.", "error");
+        return null;
+      }
+    } catch (e) {
+      showToast("Upload server offline.", "error");
+      return null;
     }
   };
 
@@ -565,6 +595,7 @@ export const AppProvider = ({ children }) => {
       events,
       notifications,
       messages,
+      unreadNotificationsCount,
       activeChatId,
       activeProjectId,
       activeStudentId,
@@ -600,7 +631,8 @@ export const AppProvider = ({ children }) => {
       simulateFileAttachment,
       markAllNotificationsRead,
       acceptInvitation,
-      declineInvitation
+      declineInvitation,
+      uploadFile
     }}>
       {children}
       

@@ -6,7 +6,7 @@ import DecryptedText from '../visual/DecryptedText';
 import Magnet from '../visual/Magnet';
 
 const Register = () => {
-  const { registerUser, navigateTo, showToast } = useApp();
+  const { registerUser, navigateTo, showToast, uploadFile } = useApp();
 
   // Registration Form State
   const [avatar, setAvatar] = useState('https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=150');
@@ -21,11 +21,15 @@ const Register = () => {
   const [userType, setUserType] = useState('student');
   const [loading, setLoading] = useState(false);
 
-  const handleAvatarUpload = (e) => {
+  const handleAvatarUpload = async (e) => {
     const file = e.target.files[0];
     if (file) {
-      const url = URL.createObjectURL(file);
-      setAvatar(url);
+      showToast('Uploading profile picture to campus server...', 'info');
+      const url = await uploadFile(file);
+      if (url) {
+        setAvatar(url);
+        showToast('Profile picture uploaded successfully!', 'success');
+      }
     }
   };
 

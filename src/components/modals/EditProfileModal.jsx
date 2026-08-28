@@ -5,7 +5,7 @@ import { skillsList } from '../../data/mockData';
 import Magnet from '../visual/Magnet';
 
 const EditProfileModal = ({ isOpen, onClose }) => {
-  const { currentUser, updateUserProfile } = useApp();
+  const { currentUser, updateUserProfile, uploadFile, showToast } = useApp();
 
   const [name, setName] = useState('');
   const [dept, setDept] = useState('');
@@ -29,11 +29,15 @@ const EditProfileModal = ({ isOpen, onClose }) => {
 
   if (!isOpen || !currentUser) return null;
 
-  const handleAvatarUpload = (e) => {
+  const handleAvatarUpload = async (e) => {
     const file = e.target.files[0];
     if (file) {
-      const url = URL.createObjectURL(file);
-      setAvatar(url);
+      showToast('Uploading profile picture to campus server...', 'info');
+      const url = await uploadFile(file);
+      if (url) {
+        setAvatar(url);
+        showToast('Profile picture uploaded successfully!', 'success');
+      }
     }
   };
 
