@@ -61,12 +61,27 @@ app.post('/api/auth/login', async (req, res) => {
 });
 
 app.post('/api/auth/register', async (req, res) => {
-  const { name, email, password, dept, year, skills, bio, avatar, userType } = req.body;
+  const { name, email, password, dept, year, skills, bio, avatar, userType, usn } = req.body;
 
   if (!email || !isRvceEmail(email)) {
     return res.status(400).json({ 
       error: 'Registration restricted! You must use an official RV College email address (@rvce.edu.in).' 
     });
+  }
+
+  // Validate USN for students
+  let finalUsn = null;
+  if (userType !== 'faculty') {
+    if (!usn) {
+      return res.status(400).json({ error: 'University Seat Number (USN) is required for students.' });
+    }
+    const usnRegex = /^1RV\d{2}(CS|IS|EC|EE|ME|BT|CV|CH|TE|AS|IM|MC)\d{3}$/i;
+    if (!usnRegex.test(usn.trim())) {
+      return res.status(400).json({ 
+        error: 'Invalid USN format! Must match official RVCE student format (e.g. 1RV22MC025).' 
+      });
+    }
+    finalUsn = usn.trim().toUpperCase();
   }
 
   if (!password || password.length < 6) {
@@ -75,23 +90,31 @@ app.post('/api/auth/register', async (req, res) => {
 
   const id = 'rvce_user_' + Date.now();
   try {
-    const existing = await getQuery("SELECT id FROM students WHERE LOWER(email) = LOWER(?)", [email.trim()]);
-    if (existing) {
+    const existingEmail = await getQuery("SELECT id FROM students WHERE LOWER(email) = LOWER(?)", [email.trim()]);
+    if (existingEmail) {
       return res.status(400).json({ error: 'An account with this @rvce.edu.in email already exists.' });
+    }
+
+    if (finalUsn) {
+      const existingUsn = await getQuery("SELECT id FROM students WHERE LOWER(usn) = LOWER(?)", [finalUsn]);
+      if (existingUsn) {
+        return res.status(400).json({ error: 'An account with this USN is already registered.' });
+      }
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
 
     await runQuery(`
-      INSERT INTO students (id, name, email, password, dept, year, skills, bio, avatar, portfolio, github, linkedin, availability, interest, trustScore, endorsements, connections, verified, userType)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 95, 0, 0, 1, ?)
+      INSERT INTO students (id, name, email, password, dept, year, skills, bio, avatar, portfolio, github, linkedin, availability, interest, trustScore, endorsements, connections, verified, userType, usn)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 95, 0, 0, 1, ?, ?)
     `, [
       id, name, email.trim().toLowerCase(), hashedPassword, dept, year, JSON.stringify(skills || []), bio || '', 
       avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=150',
       JSON.stringify([]), 'https://github.com', 'https://linkedin.com', 
       userType === 'faculty' ? 'Available to Mentor' : 'Open for projects', 
       userType === 'faculty' ? 'Research, Mentorship' : 'Hackathons, Startups',
-      userType || 'student'
+      userType || 'student',
+      finalUsn
     ]);
     
     const s = await getQuery("SELECT * FROM students WHERE id = ?", [id]);

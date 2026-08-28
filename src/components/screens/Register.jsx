@@ -13,6 +13,7 @@ const Register = () => {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [usn, setUsn] = useState('');
   const [dept, setDept] = useState('');
   const [year, setYear] = useState('');
   const [bio, setBio] = useState('');
@@ -46,13 +47,20 @@ const Register = () => {
       showToast('Registration Restricted! Only official RV College emails (@rvce.edu.in) are permitted.', 'error');
       return;
     }
+    if (userType !== 'faculty') {
+      const usnRegex = /^1RV\d{2}(CS|IS|EC|EE|ME|BT|CV|CH|TE|AS|IM|MC)\d{3}$/i;
+      if (!usnRegex.test(usn.trim())) {
+        showToast('Invalid USN format! Must match official RVCE student format (e.g. 1RV22MC025).', 'error');
+        return;
+      }
+    }
     if (selectedSkills.length < 3) {
       showToast('Please select at least 3 skills.', 'error');
       return;
     }
     
     setLoading(true);
-    const res = await registerUser(name, email.trim(), password, dept, year, bio, selectedSkills, avatar, userType);
+    const res = await registerUser(name, email.trim(), password, dept, year, bio, selectedSkills, avatar, userType, userType === 'faculty' ? null : usn.trim().toUpperCase());
     setLoading(false);
   };
 
@@ -162,6 +170,20 @@ const Register = () => {
                 required 
               />
             </div>
+
+            {userType !== 'faculty' && (
+              <div className="form-group">
+                <label className="form-label" style={{ fontWeight: 600, fontSize: '0.85rem' }}>University USN *</label>
+                <input 
+                  type="text" 
+                  className="form-control" 
+                  placeholder="e.g. 1RV25MC001" 
+                  value={usn} 
+                  onChange={(e) => setUsn(e.target.value)} 
+                  required 
+                />
+              </div>
+            )}
 
             <div className="form-group">
               <label className="form-label" style={{ fontWeight: 600, fontSize: '0.85rem' }}>RVCE Department *</label>

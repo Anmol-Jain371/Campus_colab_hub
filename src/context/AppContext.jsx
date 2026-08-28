@@ -189,12 +189,12 @@ export const AppProvider = ({ children }) => {
     showToast('Logged out of Workspace.', 'info');
   };
 
-  const registerUser = async (name, email, password, dept, year, bio, skills, avatar, userType = 'student') => {
+  const registerUser = async (name, email, password, dept, year, bio, skills, avatar, userType = 'student', usn = null) => {
     try {
       const res = await fetch(`${API_URL}/auth/register`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, email, password, dept, year, bio, skills, avatar, userType })
+        body: JSON.stringify({ name, email, password, dept, year, bio, skills, avatar, userType, usn })
       });
       if (res.ok) {
         const user = await res.json();

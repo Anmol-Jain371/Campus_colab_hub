@@ -68,7 +68,8 @@ async function initializeSchema() {
         endorsements INTEGER DEFAULT 0,
         connections INTEGER DEFAULT 0,
         verified INTEGER DEFAULT 1,
-        userType TEXT DEFAULT 'student'
+        userType TEXT DEFAULT 'student',
+        usn TEXT UNIQUE
       )
     `);
 
@@ -139,6 +140,7 @@ async function initializeSchema() {
     try { await runQuery("ALTER TABLE notifications ADD COLUMN studentId TEXT"); } catch (e) {}
     try { await runQuery("ALTER TABLE notifications ADD COLUMN role TEXT"); } catch (e) {}
     try { await runQuery("ALTER TABLE students ADD COLUMN userType TEXT DEFAULT 'student'"); } catch (e) {}
+    try { await runQuery("ALTER TABLE students ADD COLUMN usn TEXT"); } catch (e) {}
 
     // Create Events Table
     await runQuery(`
@@ -200,7 +202,8 @@ async function seedDatabase() {
       endorsements: 25,
       connections: 15,
       verified: 1,
-      userType: 'student'
+      userType: 'student',
+      usn: '1RV25MC001'
     },
     {
       id: 's1',
@@ -223,7 +226,8 @@ async function seedDatabase() {
       endorsements: 16,
       connections: 8,
       verified: 1,
-      userType: 'student'
+      userType: 'student',
+      usn: '1RV21CS001'
     },
     {
       id: 's2',
@@ -246,7 +250,8 @@ async function seedDatabase() {
       endorsements: 22,
       connections: 12,
       verified: 1,
-      userType: 'student'
+      userType: 'student',
+      usn: '1RV22IS002'
     },
     {
       id: 'f1',
@@ -267,15 +272,16 @@ async function seedDatabase() {
       endorsements: 45,
       connections: 30,
       verified: 1,
-      userType: 'faculty'
+      userType: 'faculty',
+      usn: null
     }
   ];
 
   for (const s of students) {
     await runQuery(`
-      INSERT INTO students (id, name, email, password, dept, year, skills, bio, avatar, portfolio, github, linkedin, availability, interest, trustScore, endorsements, connections, verified, userType)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `, [s.id, s.name, s.email, s.password, s.dept, s.year, s.skills, s.bio, s.avatar, s.portfolio, s.github, s.linkedin, s.availability, s.interest, s.trustScore, s.endorsements, s.connections, s.verified, s.userType || 'student']);
+      INSERT INTO students (id, name, email, password, dept, year, skills, bio, avatar, portfolio, github, linkedin, availability, interest, trustScore, endorsements, connections, verified, userType, usn)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `, [s.id, s.name, s.email, s.password, s.dept, s.year, s.skills, s.bio, s.avatar, s.portfolio, s.github, s.linkedin, s.availability, s.interest, s.trustScore, s.endorsements, s.connections, s.verified, s.userType || 'student', s.usn]);
   }
 
   // 2. Seed Projects
