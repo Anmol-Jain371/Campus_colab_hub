@@ -2,14 +2,35 @@ import express from 'express';
 import cors from 'cors';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
+import { createServer } from 'http';
+import { Server } from 'socket.io';
 import { runQuery, allQuery, getQuery } from './database.js';
 
 const app = express();
 const PORT = 3001;
 const JWT_SECRET = 'rvce_hub_secret_key_12345';
 
+const server = createServer(app);
+const io = new Server(server, {
+  cors: {
+    origin: '*',
+    methods: ['GET', 'POST']
+  }
+});
+
 app.use(cors());
 app.use(express.json());
+
+// Set up Socket.io events
+io.on('connection', (socket) => {
+  socket.on('joinChat', (chatId) => {
+    socket.join(chatId);
+  });
+
+  socket.on('leaveChat', (chatId) => {
+    socket.leave(chatId);
+  });
+});
 
 // Helper function to check RVCE email domain
 const isRvceEmail = (email) => {
@@ -342,6 +363,14 @@ app.post('/api/messages/send', authenticateToken, async (req, res) => {
       VALUES (?, ?, ?, ?, 'Just now')
     `, [chatId, senderId, senderName, text]);
 
+    io.to(chatId).emit('newMessage', {
+      chatId,
+      senderId,
+      senderName,
+      text,
+      time: 'Just now'
+    });
+
     res.status(201).json({ success: true });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -426,6 +455,23 @@ app.post('/api/notifications/:id/accept', authenticateToken, async (req, res) =>
       VALUES (?, 'system', 'System Moderator', ?, 'Just now')
     `, [ownerId, systemText]);
 
+    // Emit live message updates
+    io.to(studentId).emit('newMessage', {
+      chatId: studentId,
+      senderId: 'system',
+      senderName: 'System Moderator',
+      text: systemText,
+      time: 'Just now'
+    });
+
+    io.to(ownerId).emit('newMessage', {
+      chatId: ownerId,
+      senderId: 'system',
+      senderName: 'System Moderator',
+      text: systemText,
+      time: 'Just now'
+    });
+
     // Delete notification
     await runQuery("DELETE FROM notifications WHERE id = ?", [notiId]);
 
@@ -477,6 +523,6 @@ app.post('/api/events/:id/register', authenticateToken, async (req, res) => {
   }
 });
 
-app.listen(PORT, () => {
+server.listen(PORT, () => {
   console.log(`Campus Hub API Server running on http://localhost:${PORT}`);
 });

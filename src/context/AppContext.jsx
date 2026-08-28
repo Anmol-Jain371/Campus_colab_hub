@@ -1,12 +1,16 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
+import { io } from 'socket.io-client';
 
 const AppContext = createContext();
 
 export const useApp = () => useContext(AppContext);
 
 const API_URL = 'http://localhost:3001/api';
+const SOCKET_URL = 'http://localhost:3001';
 
 export const AppProvider = ({ children }) => {
+  const socketRef = useRef(null);
+
   // Navigation State
   const [activeScreen, setActiveScreenState] = useState(() => {
     try {
@@ -108,6 +112,60 @@ export const AppProvider = ({ children }) => {
       localStorage.removeItem('campushub_token');
     }
   }, [token]);
+
+  // Socket connection lifecycle hook
+  useEffect(() => {
+    if (currentUser && token) {
+      socketRef.current = io(SOCKET_URL, {
+        auth: { token }
+      });
+
+      // Listen for live socket messages
+      socketRef.current.on('newMessage', (msg) => {
+        setMessages(prev => prev.map(chat => {
+          if (chat.chatId === msg.chatId) {
+            // Prevent duplicate message renders if client did optimistic updates
+            const alreadyExists = chat.history.some(h => 
+              h.senderId === msg.senderId && 
+              h.text === msg.text &&
+              h.time === msg.time
+            );
+            if (!alreadyExists) {
+              return {
+                ...chat,
+                history: [...chat.history, {
+                  senderId: msg.senderId,
+                  senderName: msg.senderName,
+                  text: msg.text,
+                  time: msg.time
+                }]
+              };
+            }
+          }
+          return chat;
+        }));
+      });
+
+      return () => {
+        if (socketRef.current) {
+          socketRef.current.disconnect();
+          socketRef.current = null;
+        }
+      };
+    }
+  }, [currentUser, token]);
+
+  // Join and leave active chat rooms
+  useEffect(() => {
+    const socket = socketRef.current;
+    if (socket && activeChatId) {
+      socket.emit('joinChat', activeChatId);
+
+      return () => {
+        socket.emit('leaveChat', activeChatId);
+      };
+    }
+  }, [activeChatId]);
 
   useEffect(() => {
     localStorage.setItem('campushub_timelineEvents', JSON.stringify(timelineEvents));
