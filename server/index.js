@@ -1,5 +1,6 @@
 import express from 'express';
 import cors from 'cors';
+import bcrypt from 'bcryptjs';
 import { runQuery, allQuery, getQuery } from './database.js';
 
 const app = express();
@@ -7,6 +8,11 @@ const PORT = 3001;
 
 app.use(cors());
 app.use(express.json());
+
+// Helper function to check RVCE email domain
+const isRvceEmail = (email) => {
+  return typeof email === 'string' && email.trim().toLowerCase().endsWith('@rvce.edu.in');
+};
 
 // ==========================================
 // 1. STUDENTS / AUTH API
@@ -28,18 +34,27 @@ app.get('/api/students', async (req, res) => {
 
 app.post('/api/auth/login', async (req, res) => {
   const { email, password } = req.body;
+
+  if (!email || !isRvceEmail(email)) {
+    return res.status(400).json({ 
+      error: 'Access restricted! Only official RV College emails (@rvce.edu.in) are permitted.' 
+    });
+  }
+
   try {
-    const s = await getQuery("SELECT * FROM students WHERE email = ? AND password = ?", [email, password]);
+    const s = await getQuery("SELECT * FROM students WHERE LOWER(email) = LOWER(?)", [email.trim()]);
     if (s) {
-      res.json({
-        ...s,
-        skills: JSON.parse(s.skills),
-        portfolio: JSON.parse(s.portfolio || '[]'),
-        verified: !!s.verified
-      });
-    } else {
-      res.status(401).json({ error: 'Invalid email or password' });
+      const isMatch = await bcrypt.compare(password, s.password);
+      if (isMatch) {
+        return res.json({
+          ...s,
+          skills: JSON.parse(s.skills),
+          portfolio: JSON.parse(s.portfolio || '[]'),
+          verified: !!s.verified
+        });
+      }
     }
+    return res.status(401).json({ error: 'Invalid email or password. Please verify your credentials.' });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -47,18 +62,31 @@ app.post('/api/auth/login', async (req, res) => {
 
 app.post('/api/auth/register', async (req, res) => {
   const { name, email, password, dept, year, skills, bio, avatar, userType } = req.body;
-  const id = 'custom_user_' + Date.now();
+
+  if (!email || !isRvceEmail(email)) {
+    return res.status(400).json({ 
+      error: 'Registration restricted! You must use an official RV College email address (@rvce.edu.in).' 
+    });
+  }
+
+  if (!password || password.length < 6) {
+    return res.status(400).json({ error: 'Password must be at least 6 characters long.' });
+  }
+
+  const id = 'rvce_user_' + Date.now();
   try {
-    const existing = await getQuery("SELECT id FROM students WHERE email = ?", [email]);
+    const existing = await getQuery("SELECT id FROM students WHERE LOWER(email) = LOWER(?)", [email.trim()]);
     if (existing) {
-      return res.status(400).json({ error: 'Email address already in use.' });
+      return res.status(400).json({ error: 'An account with this @rvce.edu.in email already exists.' });
     }
+
+    const hashedPassword = await bcrypt.hash(password, 10);
 
     await runQuery(`
       INSERT INTO students (id, name, email, password, dept, year, skills, bio, avatar, portfolio, github, linkedin, availability, interest, trustScore, endorsements, connections, verified, userType)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 90, 0, 0, 1, ?)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 95, 0, 0, 1, ?)
     `, [
-      id, name, email, password, dept, year, JSON.stringify(skills), bio, 
+      id, name, email.trim().toLowerCase(), hashedPassword, dept, year, JSON.stringify(skills || []), bio || '', 
       avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=150',
       JSON.stringify([]), 'https://github.com', 'https://linkedin.com', 
       userType === 'faculty' ? 'Available to Mentor' : 'Open for projects', 

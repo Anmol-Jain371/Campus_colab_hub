@@ -42,13 +42,17 @@ const Register = () => {
       showToast('Please fill out all required fields.', 'error');
       return;
     }
+    if (!email.trim().toLowerCase().endsWith('@rvce.edu.in')) {
+      showToast('Registration Restricted! Only official RV College emails (@rvce.edu.in) are permitted.', 'error');
+      return;
+    }
     if (selectedSkills.length < 3) {
       showToast('Please select at least 3 skills.', 'error');
       return;
     }
     
     setLoading(true);
-    const res = await registerUser(name, email, password, dept, year, bio, selectedSkills, avatar, userType);
+    const res = await registerUser(name, email.trim(), password, dept, year, bio, selectedSkills, avatar, userType);
     setLoading(false);
   };
 
@@ -60,9 +64,11 @@ const Register = () => {
         {/* Header */}
         <div style={{ textAlign: 'center', marginBottom: '32px' }}>
           <h2 style={{ fontSize: '1.75rem', fontWeight: 800, color: 'var(--text-primary)' }}>
-            <DecryptedText text="Create Student Profile" speed={40} maxIterations={10} animateOn="hover" />
+            <DecryptedText text="Create RVCE Student Profile" speed={40} maxIterations={10} animateOn="hover" />
           </h2>
-          <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', marginTop: '6px' }}>Set up your portfolio to connect with study teams</p>
+          <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', marginTop: '6px' }}>
+            Set up your verified campus portfolio (<strong style={{ color: 'var(--accent)' }}>@rvce.edu.in</strong> only)
+          </p>
         </div>
 
         {/* Student vs Faculty Switcher */}
@@ -126,7 +132,7 @@ const Register = () => {
               <input 
                 type="text" 
                 className="form-control" 
-                placeholder="Riya Sen" 
+                placeholder="Anmol Jain" 
                 value={name} 
                 onChange={(e) => setName(e.target.value)} 
                 required 
@@ -134,11 +140,11 @@ const Register = () => {
             </div>
 
             <div className="form-group">
-              <label className="form-label" style={{ fontWeight: 600, fontSize: '0.85rem' }}>University Email *</label>
+              <label className="form-label" style={{ fontWeight: 600, fontSize: '0.85rem' }}>RVCE College Email *</label>
               <input 
                 type="email" 
                 className="form-control" 
-                placeholder="riya@university.edu" 
+                placeholder="anmoljainp.mca25@rvce.edu.in" 
                 value={email} 
                 onChange={(e) => setEmail(e.target.value)} 
                 required 
@@ -158,20 +164,27 @@ const Register = () => {
             </div>
 
             <div className="form-group">
-              <label className="form-label" style={{ fontWeight: 600, fontSize: '0.85rem' }}>Department *</label>
+              <label className="form-label" style={{ fontWeight: 600, fontSize: '0.85rem' }}>RVCE Department *</label>
               <select 
                 className="form-control" 
                 value={dept} 
                 onChange={(e) => setDept(e.target.value)} 
                 required
               >
-                <option value="">Select Dept</option>
-                <option value="Computer Science">Computer Science</option>
-                <option value="MCA">MCA</option>
-                <option value="Electrical Engineering">Electrical Eng</option>
-                <option value="Mechanical Engineering">Mechanical Eng</option>
-                <option value="Design & Fine Arts">Design & UI/UX</option>
-                <option value="Business School">Business School</option>
+                <option value="">Select Department</option>
+                <option value="Computer Science & Engineering">Computer Science (CSE)</option>
+                <option value="Information Science & Engineering">Information Science (ISE)</option>
+                <option value="Master of Computer Applications (MCA)">Master of Computer Applications (MCA)</option>
+                <option value="Artificial Intelligence & ML">AI & Machine Learning (AIML)</option>
+                <option value="Electronics & Communication">Electronics & Comm (ECE)</option>
+                <option value="Electrical & Electronics">Electrical & Electronics (EEE)</option>
+                <option value="Mechanical Engineering">Mechanical Eng (MECH)</option>
+                <option value="Biotechnology">Biotechnology (BT)</option>
+                <option value="Civil Engineering">Civil Engineering (CIV)</option>
+                <option value="Chemical Engineering">Chemical Engineering (CHE)</option>
+                <option value="Telecommunication Engineering">Telecomm Engineering (ETE)</option>
+                <option value="Aerospace Engineering">Aerospace Engineering (ASE)</option>
+                <option value="Industrial Engineering & Management">Industrial Eng & Mgmt (IEM)</option>
               </select>
             </div>
 

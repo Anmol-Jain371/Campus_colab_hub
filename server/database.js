@@ -2,6 +2,7 @@ import sqlite3 from 'sqlite3';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 import fs from 'fs';
+import bcrypt from 'bcryptjs';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -153,13 +154,20 @@ async function initializeSchema() {
       )
     `);
 
+    // Check if students have old email domains or if database needs re-seeding
+    const nonRvceStudent = await getQuery("SELECT COUNT(*) as count FROM students WHERE email NOT LIKE '%@rvce.edu.in'");
+    if (nonRvceStudent && nonRvceStudent.count > 0) {
+      console.log('Migrating existing student records to @rvce.edu.in domain...');
+      await runQuery("DELETE FROM students WHERE email NOT LIKE '%@rvce.edu.in'");
+    }
+
     // Seed mock database if empty
     const studentCount = await getQuery("SELECT COUNT(*) as count FROM students");
     if (studentCount.count === 0) {
-      console.log('Seeding database with initial prototype data...');
+      console.log('Seeding database with RVCE verified student data...');
       await seedDatabase();
     } else {
-      console.log('Database already initialized. Found', studentCount.count, 'students.');
+      console.log('Database initialized. Found', studentCount.count, 'RVCE verified accounts.');
     }
   } catch (err) {
     console.error('Error creating database schema:', err);
@@ -167,21 +175,45 @@ async function initializeSchema() {
 }
 
 async function seedDatabase() {
-  // 1. Seed Students
+  const defaultPasswordHash = await bcrypt.hash('password123', 10);
+  
+  // 1. Seed RVCE Students
   const students = [
+    {
+      id: 's_anmol',
+      name: 'Anmol Jain',
+      email: 'anmoljainp.mca25@rvce.edu.in',
+      password: defaultPasswordHash,
+      dept: 'Master of Computer Applications (MCA)',
+      year: '1st Year',
+      skills: JSON.stringify(['React', 'Node.js', 'Python', 'Full Stack Development', 'Git']),
+      bio: 'MCA Student at RVCE. Building campus collaboration solutions and full-stack web applications. Passionate about software architecture and team projects.',
+      avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=150',
+      portfolio: JSON.stringify([
+        'https://images.unsplash.com/photo-1551288049-bebda4e38f71?auto=format&fit=crop&q=80&w=300'
+      ]),
+      github: 'https://github.com/Anmol-Jain371',
+      linkedin: 'https://linkedin.com',
+      availability: 'Open for projects',
+      interest: 'Campus Systems, Web Development',
+      trustScore: 99,
+      endorsements: 25,
+      connections: 15,
+      verified: 1,
+      userType: 'student'
+    },
     {
       id: 's1',
       name: 'Aarav Mehta',
-      email: 'aarav@university.edu',
-      password: 'password123',
-      dept: 'Computer Science',
+      email: 'aarav.cs21@rvce.edu.in',
+      password: defaultPasswordHash,
+      dept: 'Computer Science & Engineering',
       year: '4th Year',
       skills: JSON.stringify(['Python', 'Machine Learning', 'Cloud', 'Data Science']),
-      bio: 'Enthusiastic machine learning developer. Passionate about building products that make a difference in healthcare. Looking to collaborate with designers for a startup venture.',
+      bio: 'RVCE CSE Student. Enthusiastic machine learning developer building products for healthcare. Looking to collaborate with designers for a startup venture.',
       avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&q=80&w=150',
       portfolio: JSON.stringify([
-        'https://images.unsplash.com/photo-1551288049-bebda4e38f71?auto=format&fit=crop&q=80&w=300',
-        'https://images.unsplash.com/photo-1526374965328-7f61d4dc18c5?auto=format&fit=crop&q=80&w=300'
+        'https://images.unsplash.com/photo-1551288049-bebda4e38f71?auto=format&fit=crop&q=80&w=300'
       ]),
       github: 'https://github.com',
       linkedin: 'https://linkedin.com',
@@ -190,21 +222,21 @@ async function seedDatabase() {
       trustScore: 98,
       endorsements: 16,
       connections: 8,
-      verified: 1
+      verified: 1,
+      userType: 'student'
     },
     {
       id: 's2',
       name: 'Riya Sen',
-      email: 'riya@university.edu',
-      password: 'password123',
-      dept: 'Design & Fine Arts',
+      email: 'riya.ise22@rvce.edu.in',
+      password: defaultPasswordHash,
+      dept: 'Information Science & Engineering',
       year: '3rd Year',
       skills: JSON.stringify(['UI/UX', 'Figma', 'React', 'Content Writing']),
-      bio: 'Product Designer who codes. I build design systems, wireframes, and high-fidelity mockups. Always excited about hackathons and interactive web development.',
+      bio: 'RVCE ISE Product Designer who codes. I build design systems, wireframes, and high-fidelity mockups. Always excited about 8th Mile tech fests.',
       avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&q=80&w=150',
       portfolio: JSON.stringify([
-        'https://images.unsplash.com/photo-1586717791821-3f44a563fa4c?auto=format&fit=crop&q=80&w=300',
-        'https://images.unsplash.com/photo-1541462608143-67571c6738dd?auto=format&fit=crop&q=80&w=300'
+        'https://images.unsplash.com/photo-1586717791821-3f44a563fa4c?auto=format&fit=crop&q=80&w=300'
       ]),
       github: 'https://github.com',
       linkedin: 'https://linkedin.com',
@@ -213,85 +245,18 @@ async function seedDatabase() {
       trustScore: 96,
       endorsements: 22,
       connections: 12,
-      verified: 1
-    },
-    {
-      id: 's3',
-      name: 'Karan Malhotra',
-      email: 'karan@university.edu',
-      password: 'password123',
-      dept: 'Business School',
-      year: 'Postgraduate',
-      skills: JSON.stringify(['Marketing', 'Finance', 'Content Writing']),
-      bio: 'MBA Candidate focusing on entrepreneurship. Specializing in financial modeling, market entry strategies, and customer discovery. Seeking engineering partners for a SaaS idea.',
-      avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&q=80&w=150',
-      portfolio: JSON.stringify([
-        'https://images.unsplash.com/photo-1460925895917-afdab827c52f?auto=format&fit=crop&q=80&w=300'
-      ]),
-      github: '',
-      linkedin: 'https://linkedin.com',
-      availability: 'Open for projects',
-      interest: 'Startups, Competitions',
-      trustScore: 92,
-      endorsements: 9,
-      connections: 5,
-      verified: 1
-    },
-    {
-      id: 's4',
-      name: 'Neha Roy',
-      email: 'neha@university.edu',
-      password: 'password123',
-      dept: 'Electrical Engineering',
-      year: '4th Year',
-      skills: JSON.stringify(['IoT', 'Cloud', 'Java', 'Python']),
-      bio: 'Hardware lover and firmware coder. Currently working on smart grid structures and home automation prototypes. Seeking Android/Flutter devs to build companion apps.',
-      avatar: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&q=80&w=150',
-      portfolio: JSON.stringify([
-        'https://images.unsplash.com/photo-1518770660439-4636190af475?auto=format&fit=crop&q=80&w=300',
-        'https://images.unsplash.com/photo-1563770660941-20978e870e26?auto=format&fit=crop&q=80&w=300'
-      ]),
-      github: 'https://github.com',
-      linkedin: 'https://linkedin.com',
-      availability: 'Busy with Research',
-      interest: 'Research, Hackathons',
-      trustScore: 94,
-      endorsements: 14,
-      connections: 7,
-      verified: 1
-    },
-    {
-      id: 's5',
-      name: 'Rahul Gupta',
-      email: 'rahul@university.edu',
-      password: 'password123',
-      dept: 'Computer Science',
-      year: '2nd Year',
-      skills: JSON.stringify(['React', 'Flutter', 'Figma', 'UI/UX']),
-      bio: 'Frontend enthusiast. I love building gorgeous user interfaces and smooth micro-interactions. Let’s make something beautiful!',
-      avatar: 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?auto=format&fit=crop&q=80&w=150',
-      portfolio: JSON.stringify([
-        'https://images.unsplash.com/photo-1507238691740-187a5b1d37b8?auto=format&fit=crop&q=80&w=300'
-      ]),
-      github: 'https://github.com',
-      linkedin: 'https://linkedin.com',
-      availability: 'Open for projects',
-      interest: 'Hackathons',
-      trustScore: 89,
-      endorsements: 6,
-      connections: 4,
-      verified: 0,
+      verified: 1,
       userType: 'student'
     },
     {
       id: 'f1',
       name: 'Dr. Amit Sen',
-      email: 'amit@university.edu',
-      password: 'password123',
-      dept: 'Computer Science',
+      email: 'amitsen@rvce.edu.in',
+      password: defaultPasswordHash,
+      dept: 'Computer Science & Engineering',
       year: 'Professor',
       skills: JSON.stringify(['AI', 'Machine Learning', 'Research', 'Mentorship']),
-      bio: 'Professor of Computer Science & Artificial Intelligence research group lead. Open to mentoring hackathon and startup prototypes.',
+      bio: 'Professor of Computer Science & Artificial Intelligence research group lead at RVCE. Open to mentoring hackathon and startup prototypes.',
       avatar: 'https://images.unsplash.com/photo-1537368910025-700350fe46c7?auto=format&fit=crop&q=80&w=150',
       portfolio: JSON.stringify([]),
       github: 'https://github.com',
@@ -300,7 +265,7 @@ async function seedDatabase() {
       interest: 'Research, Mentorship',
       trustScore: 100,
       endorsements: 45,
-      connections: 18,
+      connections: 30,
       verified: 1,
       userType: 'faculty'
     }

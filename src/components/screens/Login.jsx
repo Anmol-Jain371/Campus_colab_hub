@@ -17,8 +17,12 @@ const Login = () => {
       showToast('Please fill in all fields.', 'error');
       return;
     }
+    if (!email.trim().toLowerCase().endsWith('@rvce.edu.in')) {
+      showToast('Access Restricted! Please use your official RV College email (@rvce.edu.in).', 'error');
+      return;
+    }
     setLoading(true);
-    const res = await loginUser(email, password);
+    const res = await loginUser(email.trim(), password);
     setLoading(false);
   };
 
@@ -32,30 +36,31 @@ const Login = () => {
           {/* Logo & Header */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '40px' }}>
             <div style={{ width: '36px', height: '36px', borderRadius: '8px', background: 'var(--accent)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontWeight: 800, fontSize: '1.25rem' }}>C</div>
-            <span style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--text-primary)', letterSpacing: '-0.5px' }}>CampusConnect</span>
+            <span style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--text-primary)', letterSpacing: '-0.5px' }}>CampusConnect RVCE</span>
           </div>
 
           <h1 style={{ fontSize: '2rem', fontWeight: 800, color: 'var(--text-primary)', marginBottom: '8px' }}>
-            <DecryptedText text="Login to Hub" speed={40} maxIterations={10} animateOn="hover" />
+            <DecryptedText text="RVCE Student Login" speed={40} maxIterations={10} animateOn="hover" />
           </h1>
-          <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', marginBottom: '32px', lineHeight: 1.5 }}>
-            Welcome back! Enter your university credentials to connect with project teams.
+          <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', marginBottom: '24px', lineHeight: 1.5 }}>
+            Welcome back! Log in with your official RV College of Engineering credentials (<strong style={{ color: 'var(--accent)' }}>@rvce.edu.in</strong>).
           </p>
 
           {/* Form */}
           <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
             
             <div className="form-group">
-              <label className="form-label" style={{ fontWeight: 600, fontSize: '0.85rem' }}>University Email</label>
+              <label className="form-label" style={{ fontWeight: 600, fontSize: '0.85rem' }}>RVCE College Email</label>
               <input 
                 type="email" 
                 className="form-control" 
-                placeholder="riya@university.edu" 
+                placeholder="anmoljainp.mca25@rvce.edu.in" 
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required 
                 style={{ padding: '12px 16px', fontSize: '0.9rem' }}
               />
+              <span style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '4px', display: 'block' }}>Must end with @rvce.edu.in</span>
             </div>
 
             <div className="form-group">
