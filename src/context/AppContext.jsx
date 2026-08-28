@@ -27,6 +27,14 @@ export const AppProvider = ({ children }) => {
     }
   });
 
+  const [token, setToken] = useState(() => {
+    try {
+      return localStorage.getItem('campushub_token') || null;
+    } catch {
+      return null;
+    }
+  });
+
   const [students, setStudents] = useState([]);
   const [projects, setProjects] = useState([]);
   const [events, setEvents] = useState([]);
@@ -35,6 +43,25 @@ export const AppProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
   const [isInitializing, setIsInitializing] = useState(false);
   const [showOnboarding, setShowOnboarding] = useState(false);
+
+  // Authenticated fetch request wrapper
+  const authFetch = async (url, options = {}) => {
+    const headers = {
+      'Content-Type': 'application/json',
+      ...options.headers,
+    };
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+    const res = await fetch(url, { ...options, headers });
+    
+    if (res.status === 401 || res.status === 403) {
+      showToast("Secure session expired. Please log in again.", "info");
+      logoutUser();
+      throw new Error("Unauthorized");
+    }
+    return res;
+  };
   
   // Active states
   const [activeChatId, setActiveChatId] = useState(null);
@@ -73,6 +100,14 @@ export const AppProvider = ({ children }) => {
       localStorage.removeItem('campushub_currentUser');
     }
   }, [currentUser]);
+
+  useEffect(() => {
+    if (token) {
+      localStorage.setItem('campushub_token', token);
+    } else {
+      localStorage.removeItem('campushub_token');
+    }
+  }, [token]);
 
   useEffect(() => {
     localStorage.setItem('campushub_timelineEvents', JSON.stringify(timelineEvents));
@@ -162,13 +197,14 @@ export const AppProvider = ({ children }) => {
         body: JSON.stringify({ email, password })
       });
       if (res.ok) {
-        const user = await res.json();
+        const data = await res.json();
         setIsInitializing(true);
-        setCurrentUser(user);
+        setCurrentUser(data.user);
+        setToken(data.token);
         await loadDatabaseState();
         setTimeout(() => {
           setIsInitializing(false);
-          showToast(`Welcome back, ${user.name}!`, 'success');
+          showToast(`Welcome back, ${data.user.name}!`, 'success');
           navigateTo('home');
         }, 1800);
         return { success: true };
@@ -185,6 +221,7 @@ export const AppProvider = ({ children }) => {
 
   const logoutUser = () => {
     setCurrentUser(null);
+    setToken(null);
     navigateTo('landing');
     showToast('Logged out of Workspace.', 'info');
   };
@@ -197,9 +234,10 @@ export const AppProvider = ({ children }) => {
         body: JSON.stringify({ name, email, password, dept, year, bio, skills, avatar, userType, usn })
       });
       if (res.ok) {
-        const user = await res.json();
+        const data = await res.json();
         setIsInitializing(true);
-        setCurrentUser(user);
+        setCurrentUser(data.user);
+        setToken(data.token);
         await loadDatabaseState();
         setTimeout(() => {
           setIsInitializing(false);
@@ -222,9 +260,8 @@ export const AppProvider = ({ children }) => {
   const updateUserProfile = async (name, dept, year, bio, skills, avatar) => {
     if (!currentUser) return false;
     try {
-      const res = await fetch(`${API_URL}/students/${currentUser.id}`, {
+      const res = await authFetch(`${API_URL}/students/${currentUser.id}`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name, dept, year, bio, skills, avatar })
       });
       if (res.ok) {
@@ -246,7 +283,7 @@ export const AppProvider = ({ children }) => {
 
   const endorseStudent = async (studentId) => {
     try {
-      const res = await fetch(`${API_URL}/students/${studentId}/endorse`, {
+      const res = await authFetch(`${API_URL}/students/${studentId}/endorse`, {
         method: 'POST'
       });
       if (res.ok) {
@@ -269,9 +306,8 @@ export const AppProvider = ({ children }) => {
     if (!currentUser) return;
     const id = 'p_custom_' + Date.now();
     try {
-      const res = await fetch(`${API_URL}/projects`, {
+      const res = await authFetch(`${API_URL}/projects`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           id, title, desc, skillsNeeded: requiredSkills, ownerId: currentUser.id, mentor, teamSize: size, deadline, category
         })
@@ -296,9 +332,8 @@ export const AppProvider = ({ children }) => {
     if (!currentUser) return;
     const recipient = students.find(s => s.id === ownerId);
     try {
-      const res = await fetch(`${API_URL}/notifications`, {
+      const res = await authFetch(`${API_URL}/notifications`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           title: 'Collaboration Request',
           desc: `${currentUser.name} requested to join your project as a ${role}.`,
@@ -327,9 +362,8 @@ export const AppProvider = ({ children }) => {
   const addProjectComment = async (projectId, text) => {
     if (!currentUser) return;
     try {
-      const res = await fetch(`${API_URL}/projects/${projectId}/comments`, {
+      const res = await authFetch(`${API_URL}/projects/${projectId}/comments`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ author: currentUser.name, text })
       });
       if (res.ok) {
@@ -345,7 +379,7 @@ export const AppProvider = ({ children }) => {
   // Event Registrations
   const toggleEventRegistration = async (eventId) => {
     try {
-      const res = await fetch(`${API_URL}/events/${eventId}/register`, { method: 'POST' });
+      const res = await authFetch(`${API_URL}/events/${eventId}/register`, { method: 'POST' });
       if (res.ok) {
         const data = await res.json();
         await loadDatabaseState();
@@ -370,9 +404,8 @@ export const AppProvider = ({ children }) => {
     if (!currentUser || !activeChatId) return;
 
     try {
-      const res = await fetch(`${API_URL}/messages/send`, {
+      const res = await authFetch(`${API_URL}/messages/send`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           chatId: activeChatId,
           senderId: currentUser.id,
@@ -423,7 +456,7 @@ export const AppProvider = ({ children }) => {
   // Notifications Operations
   const markAllNotificationsRead = async () => {
     try {
-      const res = await fetch(`${API_URL}/notifications/read-all`, { method: 'POST' });
+      const res = await authFetch(`${API_URL}/notifications/read-all`, { method: 'POST' });
       if (res.ok) {
         await loadDatabaseState();
       }
@@ -435,9 +468,8 @@ export const AppProvider = ({ children }) => {
   const acceptInvitation = async (notificationId) => {
     if (!currentUser) return;
     try {
-      const res = await fetch(`${API_URL}/notifications/${notificationId}/accept`, {
+      const res = await authFetch(`${API_URL}/notifications/${notificationId}/accept`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ studentId: currentUser.id })
       });
       if (res.ok) {
@@ -457,7 +489,7 @@ export const AppProvider = ({ children }) => {
 
   const declineInvitation = async (notificationId) => {
     try {
-      const res = await fetch(`${API_URL}/notifications/${notificationId}/decline`, { method: 'POST' });
+      const res = await authFetch(`${API_URL}/notifications/${notificationId}/decline`, { method: 'POST' });
       if (res.ok) {
         await loadDatabaseState();
       }

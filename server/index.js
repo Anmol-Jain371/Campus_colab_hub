@@ -1,10 +1,12 @@
 import express from 'express';
 import cors from 'cors';
 import bcrypt from 'bcryptjs';
+import jwt from 'jsonwebtoken';
 import { runQuery, allQuery, getQuery } from './database.js';
 
 const app = express();
 const PORT = 3001;
+const JWT_SECRET = 'rvce_hub_secret_key_12345';
 
 app.use(cors());
 app.use(express.json());
@@ -12,6 +14,24 @@ app.use(express.json());
 // Helper function to check RVCE email domain
 const isRvceEmail = (email) => {
   return typeof email === 'string' && email.trim().toLowerCase().endsWith('@rvce.edu.in');
+};
+
+// Middleware to authenticate JWT tokens
+const authenticateToken = (req, res, next) => {
+  const authHeader = req.headers['authorization'];
+  const token = authHeader && authHeader.split(' ')[1];
+  
+  if (!token) {
+    return res.status(401).json({ error: 'Access denied. Secure session token missing.' });
+  }
+
+  jwt.verify(token, JWT_SECRET, (err, user) => {
+    if (err) {
+      return res.status(403).json({ error: 'Access forbidden. Secure session expired or invalid.' });
+    }
+    req.user = user;
+    next();
+  });
 };
 
 // ==========================================
@@ -46,11 +66,19 @@ app.post('/api/auth/login', async (req, res) => {
     if (s) {
       const isMatch = await bcrypt.compare(password, s.password);
       if (isMatch) {
+        const token = jwt.sign(
+          { id: s.id, email: s.email, userType: s.userType },
+          JWT_SECRET,
+          { expiresIn: '7d' }
+        );
         return res.json({
-          ...s,
-          skills: JSON.parse(s.skills),
-          portfolio: JSON.parse(s.portfolio || '[]'),
-          verified: !!s.verified
+          user: {
+            ...s,
+            skills: JSON.parse(s.skills),
+            portfolio: JSON.parse(s.portfolio || '[]'),
+            verified: !!s.verified
+          },
+          token
         });
       }
     }
@@ -118,19 +146,33 @@ app.post('/api/auth/register', async (req, res) => {
     ]);
     
     const s = await getQuery("SELECT * FROM students WHERE id = ?", [id]);
+    const token = jwt.sign(
+      { id: s.id, email: s.email, userType: s.userType },
+      JWT_SECRET,
+      { expiresIn: '7d' }
+    );
     res.status(201).json({
-      ...s,
-      skills: JSON.parse(s.skills),
-      portfolio: JSON.parse(s.portfolio || '[]'),
-      verified: !!s.verified
+      user: {
+        ...s,
+        skills: JSON.parse(s.skills),
+        portfolio: JSON.parse(s.portfolio || '[]'),
+        verified: !!s.verified
+      },
+      token
     });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
 
-app.put('/api/students/:id', async (req, res) => {
+app.put('/api/students/:id', authenticateToken, async (req, res) => {
   const studentId = req.params.id;
+
+  // Security: check if authenticated user matches target profile id
+  if (req.user.id !== studentId) {
+    return res.status(403).json({ error: 'Unauthorized to edit this student profile.' });
+  }
+
   const { name, dept, year, bio, skills, avatar } = req.body;
   try {
     await runQuery(`
@@ -151,7 +193,7 @@ app.put('/api/students/:id', async (req, res) => {
   }
 });
 
-app.post('/api/students/:id/endorse', async (req, res) => {
+app.post('/api/students/:id/endorse', authenticateToken, async (req, res) => {
   const studentId = req.params.id;
   try {
     const s = await getQuery("SELECT endorsements, trustScore FROM students WHERE id = ?", [studentId]);
@@ -197,8 +239,12 @@ app.get('/api/projects', async (req, res) => {
   }
 });
 
-app.post('/api/projects', async (req, res) => {
+app.post('/api/projects', authenticateToken, async (req, res) => {
   const { id, title, desc, skillsNeeded, ownerId, mentor, teamSize, deadline, category } = req.body;
+  
+  if (req.user.id !== ownerId) {
+    return res.status(403).json({ error: 'Unauthorized to create projects on behalf of another user.' });
+  }
   try {
     await runQuery(`
       INSERT INTO projects (id, title, desc, skillsNeeded, ownerId, mentor, teamSize, deadline, category)
@@ -217,7 +263,7 @@ app.post('/api/projects', async (req, res) => {
   }
 });
 
-app.post('/api/projects/:id/comments', async (req, res) => {
+app.post('/api/projects/:id/comments', authenticateToken, async (req, res) => {
   const projectId = req.params.id;
   const { author, text } = req.body;
   try {
@@ -284,8 +330,12 @@ app.get('/api/messages', async (req, res) => {
   }
 });
 
-app.post('/api/messages/send', async (req, res) => {
+app.post('/api/messages/send', authenticateToken, async (req, res) => {
   const { chatId, senderId, senderName, text } = req.body;
+
+  if (req.user.id !== senderId) {
+    return res.status(403).json({ error: 'Unauthorized to send messages as another user.' });
+  }
   try {
     await runQuery(`
       INSERT INTO chat_messages (chatId, senderId, senderName, text, time)
@@ -310,7 +360,7 @@ app.get('/api/notifications', async (req, res) => {
   }
 });
 
-app.post('/api/notifications/read-all', async (req, res) => {
+app.post('/api/notifications/read-all', authenticateToken, async (req, res) => {
   try {
     await runQuery("UPDATE notifications SET read = 1");
     res.json({ success: true });
@@ -319,8 +369,12 @@ app.post('/api/notifications/read-all', async (req, res) => {
   }
 });
 
-app.post('/api/notifications', async (req, res) => {
+app.post('/api/notifications', authenticateToken, async (req, res) => {
   const { title, desc, type, projectId, studentId, role } = req.body;
+
+  if (req.user.id !== studentId) {
+    return res.status(403).json({ error: 'Unauthorized payload. Student initiator must match authenticated user.' });
+  }
   const id = 'notif_' + Date.now();
   try {
     await runQuery(`
@@ -333,7 +387,7 @@ app.post('/api/notifications', async (req, res) => {
   }
 });
 
-app.post('/api/notifications/:id/accept', async (req, res) => {
+app.post('/api/notifications/:id/accept', authenticateToken, async (req, res) => {
   const notiId = req.params.id;
   try {
     const noti = await getQuery("SELECT * FROM notifications WHERE id = ?", [notiId]);
@@ -385,7 +439,7 @@ app.post('/api/notifications/:id/accept', async (req, res) => {
   }
 });
 
-app.post('/api/notifications/:id/decline', async (req, res) => {
+app.post('/api/notifications/:id/decline', authenticateToken, async (req, res) => {
   const notiId = req.params.id;
   try {
     await runQuery("DELETE FROM notifications WHERE id = ?", [notiId]);
@@ -407,7 +461,7 @@ app.get('/api/events', async (req, res) => {
   }
 });
 
-app.post('/api/events/:id/register', async (req, res) => {
+app.post('/api/events/:id/register', authenticateToken, async (req, res) => {
   const eventId = req.params.id;
   try {
     const ev = await getQuery("SELECT registered FROM events WHERE id = ?", [eventId]);
