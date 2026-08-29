@@ -183,6 +183,15 @@ async function initializeSchema() {
 async function seedDatabase() {
   const defaultPasswordHash = await bcrypt.hash('password123', 10);
   
+  // Clear existing tables before seeding to prevent UNIQUE constraint failures
+  await runQuery("DELETE FROM students");
+  await runQuery("DELETE FROM projects");
+  await runQuery("DELETE FROM project_members");
+  await runQuery("DELETE FROM project_comments");
+  await runQuery("DELETE FROM chat_messages");
+  await runQuery("DELETE FROM notifications");
+  await runQuery("DELETE FROM events");
+  
   // 1. Seed RVCE Students
   const students = [
     {
