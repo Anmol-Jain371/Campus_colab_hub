@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
-import { Search, Plus, User, Calendar, Users, ArrowLeft, GraduationCap, Share, Sparkles } from 'lucide-react';
+import { Search, Plus, User, Calendar, Users, ArrowLeft, GraduationCap, Share, Sparkles, CheckCircle, AlertTriangle } from 'lucide-react';
 import GlowCard from '../visual/GlowCard';
 
 const ProjectBoard = ({ onOpenCreateProject, onOpenCollabRequest }) => {
@@ -64,7 +64,23 @@ const ProjectBoard = ({ onOpenCreateProject, onOpenCollabRequest }) => {
               <span className="badge badge-teal" style={{ position: 'absolute', top: '24px', right: '24px' }}>
                 Active Recruitment
               </span>
-              <h1 style={{ fontSize: '1.8rem', marginBottom: '12px', maxWidth: '80%' }}>{p.title}</h1>
+              <h1 style={{ fontSize: '1.8rem', marginBottom: '8px', maxWidth: '80%' }}>{p.title}</h1>
+              
+              {p.verifiedStatus === 2 && (
+                <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', background: '#ecfdf5', color: '#047857', padding: '4px 10px', borderRadius: '20px', fontSize: '0.75rem', fontWeight: 600, border: '1px solid #10b981', marginBottom: '16px' }}>
+                  <CheckCircle size={14} /> Verified Research (Faculty Approved)
+                </div>
+              )}
+              {p.verifiedStatus === 1 && (
+                <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', background: '#fffbeb', color: '#b45309', padding: '4px 10px', borderRadius: '20px', fontSize: '0.75rem', fontWeight: 600, border: '1px solid #f59e0b', marginBottom: '16px' }}>
+                  <AlertTriangle size={14} /> Pending Faculty Mentor Verification
+                </div>
+              )}
+              {p.verifiedStatus === 3 && (
+                <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', background: '#fef2f2', color: '#b91c1c', padding: '4px 10px', borderRadius: '20px', fontSize: '0.75rem', fontWeight: 600, border: '1px solid #ef4444', marginBottom: '16px' }}>
+                  <AlertTriangle size={14} /> Verification Request Declined
+                </div>
+              )}
               
               <div style={{ display: 'flex', gap: '16px', fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '24px', flexWrap: 'wrap' }}>
                 <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
@@ -291,7 +307,15 @@ const ProjectBoard = ({ onOpenCreateProject, onOpenCollabRequest }) => {
                   </div>
                   <div className="project-card-header">
                     <div>
-                      <h3 className="project-card-title">{p.title}</h3>
+                      <h3 className="project-card-title" style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+                        {p.title}
+                        {p.verifiedStatus === 2 && (
+                          <CheckCircle size={16} style={{ color: '#10b981', flexShrink: 0 }} title="Verified Research" />
+                        )}
+                        {p.verifiedStatus === 1 && (
+                          <AlertTriangle size={16} style={{ color: '#f59e0b', flexShrink: 0 }} title="Pending Faculty Review" />
+                        )}
+                      </h3>
                       <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '4px' }}>Proposed by {owner.name}</p>
                     </div>
                   </div>

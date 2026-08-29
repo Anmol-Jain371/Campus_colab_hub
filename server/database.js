@@ -84,7 +84,9 @@ async function initializeSchema() {
         mentor TEXT,
         teamSize INTEGER NOT NULL,
         deadline TEXT,
-        category TEXT NOT NULL
+        category TEXT NOT NULL,
+        verifiedStatus INTEGER DEFAULT 0,
+        mentorEmail TEXT
       )
     `);
 
@@ -141,6 +143,8 @@ async function initializeSchema() {
     try { await runQuery("ALTER TABLE notifications ADD COLUMN role TEXT"); } catch (e) {}
     try { await runQuery("ALTER TABLE students ADD COLUMN userType TEXT DEFAULT 'student'"); } catch (e) {}
     try { await runQuery("ALTER TABLE students ADD COLUMN usn TEXT"); } catch (e) {}
+    try { await runQuery("ALTER TABLE projects ADD COLUMN verifiedStatus INTEGER DEFAULT 0"); } catch (e) {}
+    try { await runQuery("ALTER TABLE projects ADD COLUMN mentorEmail TEXT"); } catch (e) {}
 
     // Create Events Table
     await runQuery(`
@@ -291,11 +295,13 @@ async function seedDatabase() {
       title: 'Smart Campus IoT Grid',
       desc: 'Developing an energy-saving automated lighting and HVAC monitoring model for campus classrooms. Looking for IoT enthusiasts, a database designer, and a Business student to draft a commercialization model.',
       skillsNeeded: JSON.stringify(['IoT', 'Python', 'Cloud', 'Finance']),
-      ownerId: 's4',
-      mentor: 'Dr. Amit Verma (ECE)',
+      ownerId: 's_anmol',
+      mentor: 'Dr. Amit Sen (CSE)',
       teamSize: 5,
       deadline: '2026-11-30',
-      category: 'Research'
+      category: 'Research',
+      verifiedStatus: 1,
+      mentorEmail: 'amitsen@rvce.edu.in'
     },
     {
       id: 'p2',
@@ -303,10 +309,12 @@ async function seedDatabase() {
       desc: 'A hackathon project building a secure, OTP/Smart card-based locker system for campus libraries and gyms, integrated with a React dashboard app. Seeking React developer and UI designer.',
       skillsNeeded: JSON.stringify(['React', 'Figma', 'UI/UX', 'Cybersecurity']),
       ownerId: 's1',
-      mentor: 'Prof. Anita Desai (CSE)',
+      mentor: 'Dr. Amit Sen (CSE)',
       teamSize: 4,
       deadline: '2026-08-15',
-      category: 'Hackathon'
+      category: 'Hackathon',
+      verifiedStatus: 2,
+      mentorEmail: 'amitsen@rvce.edu.in'
     },
     {
       id: 'p3',
@@ -317,15 +325,17 @@ async function seedDatabase() {
       mentor: 'Dr. Ramamurthy (Business Incubator)',
       teamSize: 4,
       deadline: '2026-12-10',
-      category: 'Startup'
+      category: 'Startup',
+      verifiedStatus: 0,
+      mentorEmail: null
     }
   ];
 
   for (const p of projects) {
     await runQuery(`
-      INSERT INTO projects (id, title, desc, skillsNeeded, ownerId, mentor, teamSize, deadline, category)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `, [p.id, p.title, p.desc, p.skillsNeeded, p.ownerId, p.mentor, p.teamSize, p.deadline, p.category]);
+      INSERT INTO projects (id, title, desc, skillsNeeded, ownerId, mentor, teamSize, deadline, category, verifiedStatus, mentorEmail)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `, [p.id, p.title, p.desc, p.skillsNeeded, p.ownerId, p.mentor, p.teamSize, p.deadline, p.category, p.verifiedStatus || 0, p.mentorEmail || null]);
   }
 
   // 3. Seed Project Members

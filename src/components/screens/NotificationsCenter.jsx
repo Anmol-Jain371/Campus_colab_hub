@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
-import { UserPlus, Sparkles, X, ShieldCheck, Github, Cpu, CheckCircle, AlertTriangle } from 'lucide-react';
+import { UserPlus, Sparkles, X, ShieldCheck, Github, Cpu, CheckCircle, AlertTriangle, GraduationCap } from 'lucide-react';
 import SkillRadarChart from '../visual/SkillRadarChart';
 import Magnet from '../visual/Magnet';
 
 const NotificationsCenter = () => {
-  const { notifications, markAllNotificationsRead, acceptInvitation, declineInvitation, currentUser, students, projects } = useApp();
+  const { notifications, markAllNotificationsRead, acceptInvitation, declineInvitation, currentUser, students, projects, verifyProject } = useApp();
   const [reviewingNoti, setReviewingNoti] = useState(null);
 
   if (!currentUser) return null;
@@ -65,10 +65,11 @@ const NotificationsCenter = () => {
         {notifications.length > 0 ? (
           notifications.map(n => {
             const isInvitation = n.type === 'invitation' || n.type === 'request';
+            const isVerification = n.type === 'verification';
             return (
               <div key={n.id} className={`notification-item ${n.read ? '' : 'unread'}`}>
                 <div className="noti-icon">
-                  {isInvitation ? <UserPlus size={20} /> : <Sparkles size={20} />}
+                  {isInvitation ? <UserPlus size={20} /> : isVerification ? <GraduationCap size={20} /> : <Sparkles size={20} />}
                 </div>
                 <div className="noti-body">
                   <h3 className="noti-title">{n.title}</h3>
@@ -84,6 +85,16 @@ const NotificationsCenter = () => {
                       </button>
                       <button className="btn btn-outline btn-sm" onClick={() => declineInvitation(n.id)}>
                         Decline
+                      </button>
+                    </div>
+                  )}
+                  {isVerification && (
+                    <div className="noti-actions" style={{ display: 'flex', gap: '8px', marginTop: '12px' }}>
+                      <button className="btn btn-primary btn-sm" onClick={() => verifyProject(n.projectId, 'approve')}>
+                        Verify & Approve Project
+                      </button>
+                      <button className="btn btn-outline btn-sm" onClick={() => verifyProject(n.projectId, 'reject')}>
+                        Decline Verification
                       </button>
                     </div>
                   )}

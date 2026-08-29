@@ -368,14 +368,14 @@ export const AppProvider = ({ children }) => {
   };
 
   // Projects Operations
-  const addProject = async (title, desc, size, deadline, mentor, category, requiredSkills) => {
+  const addProject = async (title, desc, size, deadline, mentor, category, requiredSkills, mentorEmail = null) => {
     if (!currentUser) return;
     const id = 'p_custom_' + Date.now();
     try {
       const res = await authFetch(`${API_URL}/projects`, {
         method: 'POST',
         body: JSON.stringify({
-          id, title, desc, skillsNeeded: requiredSkills, ownerId: currentUser.id, mentor, teamSize: size, deadline, category
+          id, title, desc, skillsNeeded: requiredSkills, ownerId: currentUser.id, mentor, teamSize: size, deadline, category, mentorEmail
         })
       });
       if (res.ok) {
@@ -391,6 +391,27 @@ export const AppProvider = ({ children }) => {
       }
     } catch (e) {
       showToast("API server offline.", "error");
+    }
+  };
+
+  const verifyProject = async (projectId, status) => {
+    try {
+      const res = await authFetch(`${API_URL}/projects/${projectId}/verify`, {
+        method: 'POST',
+        body: JSON.stringify({ status })
+      });
+      if (res.ok) {
+        await loadDatabaseState();
+        showToast(`Project verification request ${status}d successfully.`, 'success');
+        return true;
+      } else {
+        const data = await res.json();
+        showToast(data.error || 'Error verifying project.', 'error');
+        return false;
+      }
+    } catch (e) {
+      showToast('API server offline.', 'error');
+      return false;
     }
   };
 
@@ -621,6 +642,7 @@ export const AppProvider = ({ children }) => {
       updateUserProfile,
       endorseStudent,
       addProject,
+      verifyProject,
       joinProjectRequest,
       addProjectComment,
       toggleEventRegistration,

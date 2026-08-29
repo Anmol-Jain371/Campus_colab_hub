@@ -294,16 +294,20 @@ app.get('/api/projects', async (req, res) => {
 });
 
 app.post('/api/projects', authenticateToken, async (req, res) => {
-  const { id, title, desc, skillsNeeded, ownerId, mentor, teamSize, deadline, category } = req.body;
+  const { id, title, desc, skillsNeeded, ownerId, mentor, teamSize, deadline, category, mentorEmail } = req.body;
   
   if (req.user.id !== ownerId) {
     return res.status(403).json({ error: 'Unauthorized to create projects on behalf of another user.' });
   }
+
+  const finalMentorEmail = mentorEmail ? mentorEmail.trim().toLowerCase() : null;
+  const verifiedStatus = finalMentorEmail ? 1 : 0;
+
   try {
     await runQuery(`
-      INSERT INTO projects (id, title, desc, skillsNeeded, ownerId, mentor, teamSize, deadline, category)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `, [id, title, desc, JSON.stringify(skillsNeeded), ownerId, mentor, parseInt(teamSize), deadline, category]);
+      INSERT INTO projects (id, title, desc, skillsNeeded, ownerId, mentor, teamSize, deadline, category, verifiedStatus, mentorEmail)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `, [id, title, desc, JSON.stringify(skillsNeeded), ownerId, mentor, parseInt(teamSize), deadline, category, verifiedStatus, finalMentorEmail]);
 
     // Auto-add owner as Leader
     await runQuery(`
@@ -311,7 +315,88 @@ app.post('/api/projects', authenticateToken, async (req, res) => {
       VALUES (?, ?, ?)
     `, [id, ownerId, 'Project Initiator / Leader']);
 
+    // If mentorEmail matches a faculty user, create a verification notification for them
+    if (finalMentorEmail) {
+      const faculty = await getQuery("SELECT id FROM students WHERE LOWER(email) = LOWER(?) AND userType = 'faculty'", [finalMentorEmail]);
+      if (faculty) {
+        const notifId = 'notif_verify_' + Date.now();
+        const student = await getQuery("SELECT name FROM students WHERE id = ?", [ownerId]);
+        const studentName = student ? student.name : 'Student';
+        const notifTitle = 'Project Verification Request';
+        const notifDesc = `${studentName} requested you to verify their project: "${title}".`;
+        
+        await runQuery(`
+          INSERT INTO notifications (id, title, desc, time, type, read, projectId, studentId, role)
+          VALUES (?, ?, ?, 'Just now', 'verification', 0, ?, ?, 'Faculty Mentor')
+        `, [notifId, notifTitle, notifDesc, id, faculty.id]);
+
+        io.emit('newNotification', {
+          id: notifId,
+          title: notifTitle,
+          desc: notifDesc,
+          time: 'Just now',
+          type: 'verification',
+          read: 0,
+          projectId: id,
+          studentId: faculty.id,
+          role: 'Faculty Mentor'
+        });
+      }
+    }
+
     res.status(201).json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/api/projects/:id/verify', authenticateToken, async (req, res) => {
+  const projectId = req.params.id;
+  const { status } = req.body; // status: 'approve' or 'reject'
+
+  if (req.user.userType !== 'faculty') {
+    return res.status(403).json({ error: 'Only faculty members are authorized to verify projects.' });
+  }
+
+  try {
+    const project = await getQuery("SELECT * FROM projects WHERE id = ?", [projectId]);
+    if (!project) {
+      return res.status(404).json({ error: 'Project not found.' });
+    }
+
+    if (!project.mentorEmail || project.mentorEmail.toLowerCase() !== req.user.email.toLowerCase()) {
+      return res.status(403).json({ error: 'You are not listed as the faculty mentor for this project.' });
+    }
+
+    const newStatus = status === 'approve' ? 2 : 3;
+    await runQuery("UPDATE projects SET verifiedStatus = ? WHERE id = ?", [newStatus, projectId]);
+
+    // Clean up original request notification
+    await runQuery("DELETE FROM notifications WHERE projectId = ? AND studentId = ? AND type = 'verification'", [projectId, req.user.id]);
+
+    // Send notification back to project owner
+    const notifId = 'notif_reply_' + Date.now();
+    const notifTitle = status === 'approve' ? 'Project Verification Approved' : 'Project Verification Rejected';
+    const notifDesc = `Faculty Mentor ${req.user.email} has ${status}d verification for your project: "${project.title}".`;
+    
+    await runQuery(`
+      INSERT INTO notifications (id, title, desc, time, type, read, projectId, studentId, role)
+      VALUES (?, ?, ?, 'Just now', 'verification_response', 0, ?, ?, 'Student Owner')
+    `, [notifId, notifTitle, notifDesc, projectId, project.ownerId]);
+
+    io.emit('newNotification', {
+      id: notifId,
+      title: notifTitle,
+      desc: notifDesc,
+      time: 'Just now',
+      type: 'verification_response',
+      read: 0,
+      projectId,
+      studentId: project.ownerId,
+      role: 'Student Owner'
+    });
+
+    res.json({ success: true, verifiedStatus: newStatus });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

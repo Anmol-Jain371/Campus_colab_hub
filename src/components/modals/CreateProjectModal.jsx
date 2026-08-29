@@ -11,6 +11,7 @@ const CreateProjectModal = ({ isOpen, onClose }) => {
   const [size, setSize] = useState(4);
   const [deadline, setDeadline] = useState('');
   const [mentor, setMentor] = useState('');
+  const [mentorEmail, setMentorEmail] = useState('');
   const [category, setCategory] = useState('Hackathon');
   const [selectedSkills, setSelectedSkills] = useState([]);
 
@@ -34,7 +35,11 @@ const CreateProjectModal = ({ isOpen, onClose }) => {
       showToast('Please select at least 1 required skill.', 'info');
       return;
     }
-    addProject(title, desc, size, deadline, mentor, category, selectedSkills);
+    if (mentorEmail && !mentorEmail.toLowerCase().endsWith('@rvce.edu.in')) {
+      showToast('Faculty mentor email must be an official @rvce.edu.in address.', 'error');
+      return;
+    }
+    addProject(title, desc, size, deadline, mentor, category, selectedSkills, mentorEmail);
     onClose();
     // Reset state
     setTitle('');
@@ -42,6 +47,7 @@ const CreateProjectModal = ({ isOpen, onClose }) => {
     setSize(4);
     setDeadline('');
     setMentor('');
+    setMentorEmail('');
     setCategory('Hackathon');
     setSelectedSkills([]);
   };
@@ -110,31 +116,43 @@ const CreateProjectModal = ({ isOpen, onClose }) => {
 
             <div className="form-row">
               <div className="form-group">
-                <label htmlFor="new-project-mentor" className="form-label">Faculty Mentor (Optional)</label>
+                <label htmlFor="new-project-mentor" className="form-label">Faculty Mentor Name (Optional)</label>
                 <input 
                   type="text" 
                   id="new-project-mentor" 
                   className="form-control" 
-                  placeholder="e.g. Dr. K. Nair"
+                  placeholder="e.g. Dr. Amit Sen"
                   value={mentor}
                   onChange={(e) => setMentor(e.target.value)}
                 />
               </div>
               <div className="form-group">
-                <label htmlFor="new-project-type" className="form-label">Category</label>
-                <select 
-                  id="new-project-type" 
+                <label htmlFor="new-project-mentor-email" className="form-label">Faculty Email for Verification (Optional)</label>
+                <input 
+                  type="email" 
+                  id="new-project-mentor-email" 
                   className="form-control" 
-                  value={category}
-                  onChange={(e) => setCategory(e.target.value)}
-                  required
-                >
-                  <option value="Hackathon">Hackathon Project</option>
-                  <option value="Research">Research & Paper</option>
-                  <option value="Startup">Startup Venture</option>
-                  <option value="Competition">Academic Competition</option>
-                </select>
+                  placeholder="e.g. amitsen@rvce.edu.in"
+                  value={mentorEmail}
+                  onChange={(e) => setMentorEmail(e.target.value)}
+                />
               </div>
+            </div>
+
+            <div className="form-group">
+              <label htmlFor="new-project-type" className="form-label">Category</label>
+              <select 
+                id="new-project-type" 
+                className="form-control" 
+                value={category}
+                onChange={(e) => setCategory(e.target.value)}
+                required
+              >
+                <option value="Hackathon">Hackathon Project</option>
+                <option value="Research">Research & Paper</option>
+                <option value="Startup">Startup Venture</option>
+                <option value="Competition">Academic Competition</option>
+              </select>
             </div>
 
             <div className="form-group">
