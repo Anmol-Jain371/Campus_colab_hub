@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
-import { Search, Plus, User, Calendar, Users, ArrowLeft, GraduationCap, Share, Sparkles, CheckCircle, AlertTriangle } from 'lucide-react';
+import { Search, Plus, User, Calendar, Users, ArrowLeft, GraduationCap, Share, Sparkles, CheckCircle, AlertTriangle, Clock } from 'lucide-react';
 import GlowCard from '../visual/GlowCard';
 
 const ProjectBoard = ({ onOpenCreateProject, onOpenCollabRequest }) => {
@@ -73,7 +73,7 @@ const ProjectBoard = ({ onOpenCreateProject, onOpenCollabRequest }) => {
               )}
               {p.verifiedStatus === 1 && (
                 <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', background: '#fffbeb', color: '#b45309', padding: '4px 10px', borderRadius: '20px', fontSize: '0.75rem', fontWeight: 600, border: '1px solid #f59e0b', marginBottom: '16px' }}>
-                  <AlertTriangle size={14} /> Pending Faculty Mentor Verification
+                  <Clock size={14} /> Pending Faculty Mentor Verification
                 </div>
               )}
               {p.verifiedStatus === 3 && (
@@ -300,7 +300,7 @@ const ProjectBoard = ({ onOpenCreateProject, onOpenCollabRequest }) => {
             const score = calculateAIMatchScore(p.skillsNeeded, currentUser.skills);
             return (
               <GlowCard key={p.id} className="project-card">
-                <div style={{ padding: '24px' }}>
+                <div style={{ padding: '24px', display: 'flex', flexDirection: 'column', height: '100%', flex: 1 }}>
                   <div className="match-score">
                     <Sparkles size={14} style={{ color: 'var(--accent)', marginRight: '4px' }} />
                     <span>{score}% Match</span>
@@ -313,7 +313,7 @@ const ProjectBoard = ({ onOpenCreateProject, onOpenCollabRequest }) => {
                           <CheckCircle size={16} style={{ color: '#10b981', flexShrink: 0 }} title="Verified Research" />
                         )}
                         {p.verifiedStatus === 1 && (
-                          <AlertTriangle size={16} style={{ color: '#f59e0b', flexShrink: 0 }} title="Pending Faculty Review" />
+                          <Clock size={16} style={{ color: '#f59e0b', flexShrink: 0 }} title="Pending Faculty Review" />
                         )}
                       </h3>
                       <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '4px' }}>Proposed by {owner.name}</p>

@@ -47,7 +47,7 @@ const EventsBoard = () => {
             <div style={{ height: '120px', backgroundColor: 'var(--primary-light)', margin: '-24px -24px 16px -24px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               <Sparkles size={48} style={{ color: 'var(--primary)', opacity: 0.3 }} />
             </div>
-            <div style={{ display: 'flex', gap: '16px', marginTop: '12px' }}>
+            <div style={{ display: 'flex', gap: '16px', marginTop: '12px', flex: 1 }}>
               <div className="event-date-box" style={{ flexShrink: 0 }}>
                 <span className="month">{ev.month}</span>
                 <span className="day">{ev.day}</span>

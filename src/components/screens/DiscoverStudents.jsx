@@ -259,7 +259,7 @@ const DiscoverStudents = ({ onOpenCollabRequest }) => {
             const matchScore = calculateAIMatchScore(s.skills, currentUser.skills);
             return (
               <GlowCard key={s.id} className="student-card">
-                <div style={{ padding: '24px' }}>
+                <div style={{ padding: '24px', display: 'flex', flexDirection: 'column', height: '100%', flex: 1 }}>
                   <div className="match-score">
                     <Sparkles size={14} style={{ color: 'var(--accent)' }} />
                     <span>{matchScore}% Match</span>
